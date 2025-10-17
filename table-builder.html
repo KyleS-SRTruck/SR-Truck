@@ -17,6 +17,7 @@
     .actions { margin-top:12px; display:flex; gap:8px; }
     .small { font-size:13px; color:#666; }
     textarea { width:100%; height:120px; margin-top:8px; font-family:monospace; font-size:13px; }
+    label.checkbox { display:flex; align-items:center; gap:6px; font-size:13px; color:#333; }
   </style>
 </head>
 <body>
@@ -26,9 +27,10 @@
     <input id="price" type="number" placeholder="Total $" step="0.01" style="width:120px" />
     <button id="add">Add row</button>
     <button id="clear">Clear all</button>
+    <label class="checkbox"><input type="checkbox" id="hideCol2"> Hide Total column</label>
   </div>
 
-  <div class="small">Preview below shows full table styling. Use "Copy rows" to copy only the &lt;tr&gt; rows to paste into your child merge-field.</div>
+  <div class="small">Preview below shows full table styling. Use "Copy rows" to copy only the &lt;tr&gt; rows to paste into your child merge-field. Use "Copy full table HTML" to copy the complete table markup (useful if Striven strips rows-only).</div>
 
   <table id="preview">
     <colgroup>
@@ -67,6 +69,7 @@
     const copyBtn = document.getElementById('copy');
     const copyTableBtn = document.getElementById('copyTable');
     const downloadBtn = document.getElementById('download');
+    const hideCheckbox = document.getElementById('hideCol2');
 
     function formatPrice(v) {
       if (v === '' || v === null) return '';
@@ -94,7 +97,7 @@
 
     function updateOutput() {
       // produce only the <tr> rows as string (no table wrapper)
-      const rows = Array.from(rowsEl.children).map(tr => tr.outerHTML).join('\\n');
+      const rows = Array.from(rowsEl.children).map(tr => tr.outerHTML).join('\n');
       outputEl.value = rows;
     }
 
@@ -128,7 +131,29 @@
     });
 
     copyTableBtn.addEventListener('click', async () => {
-      const table = document.getElementById('preview').outerHTML;
+      const hide = hideCheckbox.checked;
+      // Clone the table so we don't modify the on-screen preview
+      const tableClone = document.getElementById('preview').cloneNode(true);
+
+      if (hide) {
+        // Add a colgroup that hides the second column
+        const colgroup = document.createElement('colgroup');
+        const c1 = document.createElement('col');
+        c1.style.width = '85%';
+        const c2 = document.createElement('col');
+        c2.style.width = '15%';
+        c2.style.display = 'none';
+        colgroup.appendChild(c1);
+        colgroup.appendChild(c2);
+        tableClone.insertBefore(colgroup, tableClone.firstChild);
+
+        // Also hide header and second-column cells as a fallback
+        tableClone.querySelectorAll('thead th:nth-child(2), tbody td:nth-child(2)').forEach(el => {
+          el.style.display = 'none';
+        });
+      }
+
+      const table = tableClone.outerHTML;
       try {
         await navigator.clipboard.writeText(table);
         copyTableBtn.textContent = 'Copied ✓';
@@ -139,11 +164,21 @@
     });
 
     downloadBtn.addEventListener('click', () => {
-      const fullDoc = `
-<!doctype html>
+      const hide = hideCheckbox.checked;
+      const tableClone = document.getElementById('preview').cloneNode(true);
+      if (hide) {
+        const colgroup = document.createElement('colgroup');
+        const c1 = document.createElement('col'); c1.style.width = '85%';
+        const c2 = document.createElement('col'); c2.style.width = '15%'; c2.style.display = 'none';
+        colgroup.appendChild(c1); colgroup.appendChild(c2);
+        tableClone.insertBefore(colgroup, tableClone.firstChild);
+        tableClone.querySelectorAll('thead th:nth-child(2), tbody td:nth-child(2)').forEach(el => { el.style.display = 'none'; });
+      }
+
+      const fullDoc = `<!doctype html>
 <html>
 <head><meta charset="utf-8"><title>Preview Table</title></head>
-<body>${document.getElementById('preview').outerHTML}</body>
+<body>${tableClone.outerHTML}</body>
 </html>`;
       const blob = new Blob([fullDoc], {type:'text/html'});
       const url = URL.createObjectURL(blob);
