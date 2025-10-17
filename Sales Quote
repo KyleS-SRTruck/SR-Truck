@@ -1,0 +1,164 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Table Builder — Preview and Copy Rows</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; max-width:900px; margin:24px auto; padding:0 16px; color:#222; }
+    h1 { font-size:18px; margin-bottom:8px; }
+    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
+    .controls input[type="text"], .controls input[type="number"] { padding:6px 8px; font-size:14px; }
+    .controls button { padding:6px 10px; font-size:14px; cursor:pointer; }
+    table { width:100%; border-collapse:collapse; margin-top:12px; }
+    th, td { border:1px solid #bbb; padding:8px; }
+    th { background:#f4f4f4; text-align:left; }
+    tbody tr:nth-child(even) { background:#f6fbff; }
+    .actions { margin-top:12px; display:flex; gap:8px; }
+    .small { font-size:13px; color:#666; }
+    textarea { width:100%; height:120px; margin-top:8px; font-family:monospace; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>Table Builder — Add rows and copy &lt;tr&gt; output</h1>
+  <div class="controls" aria-hidden="false">
+    <input id="desc" type="text" placeholder="Description" style="flex:1" />
+    <input id="price" type="number" placeholder="Total $" step="0.01" style="width:120px" />
+    <button id="add">Add row</button>
+    <button id="clear">Clear all</button>
+  </div>
+
+  <div class="small">Preview below shows full table styling. Use "Copy rows" to copy only the &lt;tr&gt; rows to paste into your child merge-field.</div>
+
+  <table id="preview">
+    <colgroup>
+      <col style="width:85%;">
+      <col style="width:15%;">
+    </colgroup>
+    <thead>
+      <tr>
+        <th><font size="4">Description of Work to be Performed</font></th>
+        <th style="text-align:right"><font size="4">Total $</font></th>
+      </tr>
+    </thead>
+    <tbody id="rows">
+      <!-- Rows added by user -->
+    </tbody>
+  </table>
+
+  <div class="actions">
+    <button id="copy">Copy rows (TR only)</button>
+    <button id="copyTable">Copy full table HTML</button>
+    <button id="download">Download HTML file</button>
+  </div>
+
+  <div style="margin-top:14px">
+    <label class="small">Generated &lt;tr&gt; rows (paste these into your Striven child merge-field):</label>
+    <textarea id="output" readonly></textarea>
+  </div>
+
+  <script>
+    const descEl = document.getElementById('desc');
+    const priceEl = document.getElementById('price');
+    const addBtn = document.getElementById('add');
+    const clearBtn = document.getElementById('clear');
+    const rowsEl = document.getElementById('rows');
+    const outputEl = document.getElementById('output');
+    const copyBtn = document.getElementById('copy');
+    const copyTableBtn = document.getElementById('copyTable');
+    const downloadBtn = document.getElementById('download');
+
+    function formatPrice(v) {
+      if (v === '' || v === null) return '';
+      const n = Number(v);
+      return isNaN(n) ? '' : n.toFixed(2);
+    }
+
+    function addRow(desc, price) {
+      const tr = document.createElement('tr');
+      const td1 = document.createElement('td');
+      td1.style.textAlign = 'left';
+      td1.style.height = '25px';
+      td1.innerHTML = escapeHtml(desc || '');
+      const td2 = document.createElement('td');
+      td2.style.textAlign = 'right';
+      td2.textContent = formatPrice(price);
+      tr.appendChild(td1);
+      tr.appendChild(td2);
+      rowsEl.appendChild(tr);
+      updateOutput();
+      descEl.value = '';
+      priceEl.value = '';
+      descEl.focus();
+    }
+
+    function updateOutput() {
+      // produce only the <tr> rows as string (no table wrapper)
+      const rows = Array.from(rowsEl.children).map(tr => tr.outerHTML).join('\\n');
+      outputEl.value = rows;
+    }
+
+    function escapeHtml(str) {
+      return String(str).replace(/[&<>"]/g, function (s) {
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s];
+      });
+    }
+
+    addBtn.addEventListener('click', () => {
+      const d = descEl.value.trim();
+      const p = priceEl.value;
+      if (!d) { descEl.focus(); return; }
+      addRow(d, p);
+    });
+
+    clearBtn.addEventListener('click', () => {
+      rowsEl.innerHTML = '';
+      updateOutput();
+      descEl.focus();
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(outputEl.value);
+        copyBtn.textContent = 'Copied ✓';
+        setTimeout(()=>copyBtn.textContent='Copy rows (TR only)',1000);
+      } catch (e) {
+        alert('Clipboard write failed — select and copy the text below manually.');
+      }
+    });
+
+    copyTableBtn.addEventListener('click', async () => {
+      const table = document.getElementById('preview').outerHTML;
+      try {
+        await navigator.clipboard.writeText(table);
+        copyTableBtn.textContent = 'Copied ✓';
+        setTimeout(()=>copyTableBtn.textContent='Copy full table HTML',1000);
+      } catch (e) {
+        alert('Clipboard write failed — select and copy the HTML manually.');
+      }
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const fullDoc = `
+<!doctype html>
+<html>
+<head><meta charset="utf-8"><title>Preview Table</title></head>
+<body>${document.getElementById('preview').outerHTML}</body>
+</html>`;
+      const blob = new Blob([fullDoc], {type:'text/html'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'table-preview.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    // seed with example rows (optional)
+    addRow('Item A - Replace brake pads', '125.00');
+    addRow('Item B - Oil change', '45.00');
+  </script>
+</body>
+</html>
