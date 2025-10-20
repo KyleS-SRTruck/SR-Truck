@@ -224,33 +224,65 @@
       });
     }
 
-    // ---------- Copy Quote ----------
-    function copyQuote() {
-      const rows = document.querySelectorAll("#quoteBody tr");
-      let quoteText = "=== SR Truck Quote ===\n\n";
-      quoteText += "Description of Work to be Performed | Total $\n";
-      quoteText += "------------------------------------|---------\n";
+    // --- Copy Striven-compatible inline HTML quote ---
+function copyQuoteHTML() {
+  const rows = document.querySelectorAll('#quoteBody tr');
+  if (!rows.length) return alert('No rows to copy.');
 
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        // preserve text content from description but strip tags
-        const desc = (cells[0].innerHTML || "").replace(/<[^>]*>/g, '').trim();
-        const total = (cells[1].innerText || "").trim();
-        if (desc || total) {
-          quoteText += `${desc} | ${total}\n`;
-        }
-      });
+  let total = 0;
+  let html = `
+<table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 12pt;">
+  <thead>
+    <tr>
+      <th style="text-align: center; width: 85%; height: 50px;">
+        <font size="4">Description of Work to be Performed</font>
+      </th>
+      <th style="text-align: center; width: 15%; height: 50px;">
+        <font size="4">Total $</font>
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+`;
 
-      const grandTotal = document.getElementById("grandTotal").innerText;
-      quoteText += `\nTOTAL AMOUNT: ${grandTotal}\n`;
-      quoteText += "\n----------------------\nThank you for choosing SR Truck!";
+  rows.forEach((row, index) => {
+    const desc = (row.cells[0]?.innerText || '').trim();
+    const amt = (row.cells[1]?.innerText || '').trim().replace(/[^0-9.]/g, '');
+    const num = parseFloat(amt) || 0;
+    total += num;
 
-      navigator.clipboard.writeText(quoteText).then(() => {
-        const msg = document.getElementById("message");
-        msg.style.display = "block";
-        setTimeout(() => msg.style.display = "none", 3000);
-      });
-    }
+    const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
+    const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
+
+    html += `
+    <tr${bgColor}>
+      <td style="text-align: left; height: 25px;">${desc}</td>
+      <td style="text-align: right; height: 25px; font-size: 10pt; color: rgba(102, 102, 102, 1)">${displayAmt}</td>
+    </tr>
+    `;
+  });
+
+  const totalDisplay = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+
+  html += `
+    <tr>
+      <td style="text-align: right; font-weight: bold; height: 30px;">Total</td>
+      <td style="text-align: right; font-weight: bold; height: 30px;">${totalDisplay}</td>
+    </tr>
+  </tbody>
+</table>
+  `;
+
+  // Copy to clipboard as HTML
+  const tempEl = document.createElement('textarea');
+  tempEl.value = html.trim();
+  document.body.appendChild(tempEl);
+  tempEl.select();
+  document.execCommand('copy');
+  document.body.removeChild(tempEl);
+
+  alert('✅ Quote copied in Striven-compatible HTML format!');
+}
 
     // ---------- Drag & Drop (desktop & touch) ----------
     let draggingRow = null;
