@@ -6,114 +6,116 @@
   <title>SR Truck Quote Builder</title>
 
   <style>
-  body {
-    font-family: system-ui, sans-serif;
-    background: #f7f9fc;
-    margin: 0;
-    padding: 2rem;
-  }
-  .container {
-    max-width: 900px;
-    margin: 0 auto;
-    background: white;
-    padding: 2rem;
-    border-radius: 16px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-  }
-  h1 {
-    text-align: center;
-    color: #1a202c;
-    margin-bottom: 1.5rem;
-  }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 2rem;
-    background: #f9fafb;
-  }
-  th, td {
-    border: 1px solid #e2e8f0;
-    padding: 0.75rem;
-    text-align: left;
-    vertical-align: middle;
-  }
-  th {
-    background: #2563eb;
-    color: white;
-    text-align: center;
-  }
-  tr:nth-child(even) {
-    background: #f1f5f9;
-  }
-  td[contenteditable="true"]:focus {
-    outline: 2px solid #2563eb;
-    background: #eef2ff;
-  }
-  tfoot td {
-    font-weight: bold;
-    background: #e0e7ff;
-  }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f9fc;
+      margin: 0;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    h1 {
+      text-align: center;
+      color: #1a202c;
+      margin-bottom: 1.5rem;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+      background: #f9fafb;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      background: #2563eb;
+      color: white;
+      text-align: center;
+    }
+    tr:nth-child(even) {
+      background: #f1f5f9;
+    }
+    td[contenteditable="true"]:focus {
+      outline: 2px solid #2563eb;
+      background: #eef2ff;
+    }
+    tfoot td {
+      font-weight: bold;
+      background: #e0e7ff;
+    }
 
-  /* Fix for action buttons */
-  .actions {
-    text-align: center;
-    white-space: nowrap;
-    width: 100px;
-  }
-  .action-btn {
-    display: inline-block;
-    background-color: #e5e7eb;
-    border: none;
-    padding: 4px 6px;
-    margin: 0 3px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    line-height: 1;
-    transition: all 0.15s ease;
-  }
-  .action-btn:hover {
-    background-color: #cbd5e1;
-  }
-  .action-btn.delete {
-    background-color: #ef4444;
-    color: white;
-  }
-  .action-btn.delete:hover {
-    background-color: #dc2626;
-  }
+    /* --- Action buttons --- */
+    .actions {
+      text-align: center;
+      white-space: nowrap;
+      width: 100px;
+    }
+    .action-btn {
+      display: inline-block;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      line-height: 1;
+      margin: 0 2px;
+      width: 32px;
+      height: 28px;
+      transition: all 0.15s ease;
+    }
+    .action-btn.add {
+      background-color: #e5e7eb;
+      color: #4b5563;
+    }
+    .action-btn.add:hover {
+      background-color: #cbd5e1;
+    }
+    .action-btn.delete {
+      background-color: #ef4444;
+      color: white;
+    }
+    .action-btn.delete:hover {
+      background-color: #dc2626;
+    }
 
-  button {
-    margin-top: 1.5rem;
-    width: 100%;
-    background-color: #2563eb;
-    color: white;
-    border: none;
-    padding: 0.8rem;
-    font-size: 1.1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.2s ease-in-out;
-  }
-  button:hover {
-    background-color: #1d4ed8;
-  }
-  #message {
-    text-align: center;
-    color: #16a34a;
-    font-weight: 600;
-    margin-top: 1rem;
-    display: none;
-  }
-</style>
-
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.8rem;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    #message {
+      text-align: center;
+      color: #16a34a;
+      font-weight: 600;
+      margin-top: 1rem;
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
   <div class="container">
     <h1>SR Truck Quote Builder</h1>
 
-    <!-- Quote Table -->
     <table id="quoteTable">
       <thead>
         <tr>
@@ -127,7 +129,7 @@
           <td contenteditable="true" placeholder="Enter description..."></td>
           <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
           <td class="actions">
-            <button class="action-btn" onclick="insertRow(this)">➕</button>
+            <button class="action-btn add" onclick="insertRow(this)">+</button>
             <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
           </td>
         </tr>
@@ -153,7 +155,7 @@
         <td contenteditable="true" placeholder="Enter description..."></td>
         <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
         <td class="actions">
-          <button class="action-btn" onclick="insertRow(this)">➕</button>
+          <button class="action-btn add" onclick="insertRow(this)">+</button>
           <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
         </td>
       `;
@@ -168,7 +170,7 @@
         updateTotal();
       } else {
         // Clear last row instead of deleting it
-        row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerText = '');
+        row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerHTML = '');
         updateTotal();
       }
     }
@@ -211,7 +213,7 @@
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
-        const desc = (cells[0].innerText || "").trim();
+        const desc = (cells[0].innerHTML || "").replace(/<[^>]*>/g, '').trim();
         const total = (cells[1].innerText || "").trim();
         if (desc || total) {
           quoteText += `${desc} | ${total}\n`;
