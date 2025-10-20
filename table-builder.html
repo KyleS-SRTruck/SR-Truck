@@ -13,7 +13,7 @@
       padding: 2rem;
     }
     .container {
-      max-width: 700px;
+      max-width: 900px;
       margin: 0 auto;
       background: white;
       padding: 2rem;
@@ -39,7 +39,25 @@
       border-radius: 8px;
       font-size: 1rem;
     }
-    textarea { resize: vertical; min-height: 80px; }
+    textarea { resize: vertical; min-height: 60px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 2rem;
+      background: #f9fafb;
+    }
+    th, td {
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      text-align: left;
+    }
+    th {
+      background: #2563eb;
+      color: white;
+    }
+    tr:nth-child(even) {
+      background: #f1f5f9;
+    }
     button {
       margin-top: 1.5rem;
       width: 100%;
@@ -70,29 +88,61 @@
     <h1>SR Truck Quote Builder</h1>
 
     <label for="salesperson">Salesperson</label>
-    <input type="text" id="salesperson" placeholder="Enter your name" />
+    <input type="text" id="salesperson" placeholder="Enter your name" oninput="updateTable()" />
 
     <label for="customer">Customer Name</label>
-    <input type="text" id="customer" placeholder="Customer or company name" />
+    <input type="text" id="customer" placeholder="Customer or company name" oninput="updateTable()" />
 
     <label for="truckModel">Truck Model</label>
-    <input type="text" id="truckModel" placeholder="e.g., Freightliner Cascadia" />
+    <input type="text" id="truckModel" placeholder="e.g., Freightliner Cascadia" oninput="updateTable()" />
 
     <label for="vin">VIN / Stock #</label>
-    <input type="text" id="vin" placeholder="Enter VIN or stock number" />
+    <input type="text" id="vin" placeholder="Enter VIN or stock number" oninput="updateTable()" />
 
     <label for="price">Quoted Price ($)</label>
-    <input type="number" id="price" placeholder="e.g., 129500" />
+    <input type="number" id="price" placeholder="e.g., 129500" oninput="updateTable()" />
 
     <label for="notes">Notes / Options</label>
-    <textarea id="notes" placeholder="Include specs, terms, etc."></textarea>
+    <textarea id="notes" placeholder="Include specs, terms, etc." oninput="updateTable()"></textarea>
+
+    <!-- Quote Table -->
+    <table id="quoteTable">
+      <thead>
+        <tr>
+          <th>Salesperson</th>
+          <th>Customer</th>
+          <th>Truck Model</th>
+          <th>VIN / Stock #</th>
+          <th>Price ($)</th>
+          <th>Notes</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td id="tSalesperson">–</td>
+          <td id="tCustomer">–</td>
+          <td id="tModel">–</td>
+          <td id="tVin">–</td>
+          <td id="tPrice">–</td>
+          <td id="tNotes">–</td>
+        </tr>
+      </tbody>
+    </table>
 
     <button type="button" onclick="copyQuote()">📋 Copy Quote</button>
-
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
   <script>
+    function updateTable() {
+      document.getElementById("tSalesperson").innerText = document.getElementById("salesperson").value || "–";
+      document.getElementById("tCustomer").innerText = document.getElementById("customer").value || "–";
+      document.getElementById("tModel").innerText = document.getElementById("truckModel").value || "–";
+      document.getElementById("tVin").innerText = document.getElementById("vin").value || "–";
+      document.getElementById("tPrice").innerText = document.getElementById("price").value || "–";
+      document.getElementById("tNotes").innerText = document.getElementById("notes").value || "–";
+    }
+
     function copyQuote() {
       const salesperson = document.getElementById("salesperson").value.trim();
       const customer    = document.getElementById("customer").value.trim();
@@ -103,7 +153,7 @@
 
       const date = new Date().toLocaleDateString();
 
-      const quoteText = 
+      const quoteText =
 `=== SR Truck Quote ===
 Date: ${date}
 Salesperson: ${salesperson}
@@ -128,3 +178,4 @@ Thank you for choosing SR Truck!`;
   </script>
 </body>
 </html>
+
