@@ -25,21 +25,6 @@
       color: #1a202c;
       margin-bottom: 1.5rem;
     }
-    label {
-      display: block;
-      font-weight: 600;
-      margin-top: 1rem;
-      color: #2d3748;
-    }
-    input, textarea {
-      width: 100%;
-      padding: 0.6rem 0.8rem;
-      margin-top: 0.3rem;
-      border: 1px solid #cbd5e0;
-      border-radius: 8px;
-      font-size: 1rem;
-    }
-    textarea { resize: vertical; min-height: 60px; }
     table {
       width: 100%;
       border-collapse: collapse;
@@ -59,6 +44,14 @@
     }
     tr:nth-child(even) {
       background: #f1f5f9;
+    }
+    td[contenteditable="true"]:focus {
+      outline: 2px solid #2563eb;
+      background: #eef2ff;
+    }
+    tfoot td {
+      font-weight: bold;
+      background: #e0e7ff;
     }
     button {
       margin-top: 1.5rem;
@@ -96,7 +89,7 @@
   <div class="container">
     <h1>SR Truck Quote Builder</h1>
 
-    <!-- TABLE -->
+    <!-- Quote Table -->
     <table id="quoteTable">
       <thead>
         <tr>
@@ -107,9 +100,15 @@
       <tbody id="quoteBody">
         <tr>
           <td contenteditable="true" placeholder="Enter description..."></td>
-          <td contenteditable="true" placeholder="Enter amount..."></td>
+          <td contenteditable="true" oninput="formatCurrency(this)" placeholder="Enter amount..."></td>
         </tr>
       </tbody>
+      <tfoot>
+        <tr>
+          <td style="text-align:right;">Total Amount:</td>
+          <td id="grandTotal">$0.00</td>
+        </tr>
+      </tfoot>
     </table>
 
     <button class="add-row" type="button" onclick="addRow()">➕ Add Row</button>
@@ -123,9 +122,50 @@
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
         <td contenteditable="true" placeholder="Enter description..."></td>
-        <td contenteditable="true" placeholder="Enter amount..."></td>
+        <td contenteditable="true" oninput="formatCurrency(this)" placeholder="Enter amount..."></td>
       `;
       tableBody.appendChild(newRow);
+    }
+
+    function formatCurrency(cell) {
+      // Allow only numbers and one dot
+      const value = cell.innerText.replace(/[^0-9.]/g, '');
+      const num = parseFloat(value);
+      if (!isNaN(num)) {
+        cell.innerText = num.toLocaleString('en-US', {
+          style: 'currency',
+          currency: 'USD'
+        });
+      } else {
+        cell.innerText = '';
+      }
+      updateTotal();
+      placeCaretAtEnd(cell);
+    }
+
+    function placeCaretAtEnd(el) {
+      const range = document.createRange();
+      const sel = window.getSelection();
+      range.selectNodeContents(el);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+
+    function updateTotal() {
+      const rows = document.querySelectorAll("#quoteBody tr");
+      let total = 0;
+      rows.forEach(row => {
+        const amountCell = row.querySelectorAll("td")[1];
+        if (amountCell) {
+          const amount = parseFloat(amountCell.innerText.replace(/[^0-9.-]+/g, ""));
+          if (!isNaN(amount)) total += amount;
+        }
+      });
+      document.getElementById("grandTotal").innerText = total.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      });
     }
 
     function copyQuote() {
@@ -139,10 +179,12 @@
         const desc = (cells[0].innerText || "").trim();
         const total = (cells[1].innerText || "").trim();
         if (desc || total) {
-          quoteText += `${desc} | $${total}\n`;
+          quoteText += `${desc} | ${total}\n`;
         }
       });
 
+      const grandTotal = document.getElementById("grandTotal").innerText;
+      quoteText += `\nTOTAL AMOUNT: ${grandTotal}\n`;
       quoteText += "\n----------------------\nThank you for choosing SR Truck!";
 
       navigator.clipboard.writeText(quoteText).then(() => {
