@@ -1,199 +1,130 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Table Builder — Preview and Copy Rows</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SR Truck Quote Builder</title>
+
   <style>
-    body { font-family: Arial, Helvetica, sans-serif; max-width:900px; margin:24px auto; padding:0 16px; color:#222; }
-    h1 { font-size:18px; margin-bottom:8px; }
-    .controls { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; align-items:center; }
-    .controls input[type="text"], .controls input[type="number"] { padding:6px 8px; font-size:14px; }
-    .controls button { padding:6px 10px; font-size:14px; cursor:pointer; }
-    table { width:100%; border-collapse:collapse; margin-top:12px; }
-    th, td { border:1px solid #bbb; padding:8px; }
-    th { background:#f4f4f4; text-align:left; }
-    tbody tr:nth-child(even) { background:#f6fbff; }
-    .actions { margin-top:12px; display:flex; gap:8px; }
-    .small { font-size:13px; color:#666; }
-    textarea { width:100%; height:120px; margin-top:8px; font-family:monospace; font-size:13px; }
-    label.checkbox { display:flex; align-items:center; gap:6px; font-size:13px; color:#333; }
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f7f9fc;
+      margin: 0;
+      padding: 2rem;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    h1 {
+      text-align: center;
+      color: #1a202c;
+      margin-bottom: 1.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 600;
+      margin-top: 1rem;
+      color: #2d3748;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      margin-top: 0.3rem;
+      border: 1px solid #cbd5e0;
+      border-radius: 8px;
+      font-size: 1rem;
+    }
+    textarea { resize: vertical; min-height: 80px; }
+    button {
+      margin-top: 1.5rem;
+      width: 100%;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.8rem;
+      font-size: 1.1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+    button:hover {
+      background-color: #1d4ed8;
+    }
+    #message {
+      text-align: center;
+      color: #16a34a;
+      font-weight: 600;
+      margin-top: 1rem;
+      display: none;
+    }
   </style>
 </head>
+
 <body>
-  <h1>Table Builder — Add rows and copy &lt;tr&gt; output</h1>
-  <div class="controls" aria-hidden="false">
-    <input id="desc" type="text" placeholder="Description" style="flex:1" />
-    <input id="price" type="number" placeholder="Total $" step="0.01" style="width:120px" />
-    <button id="add">Add row</button>
-    <button id="clear">Clear all</button>
-    <label class="checkbox"><input type="checkbox" id="hideCol2"> Hide Total column</label>
-  </div>
+  <div class="container">
+    <h1>SR Truck Quote Builder</h1>
 
-  <div class="small">Preview below shows full table styling. Use "Copy rows" to copy only the &lt;tr&gt; rows to paste into your child merge-field. Use "Copy full table HTML" to copy the complete table markup (useful if Striven strips rows-only).</div>
+    <label for="salesperson">Salesperson</label>
+    <input type="text" id="salesperson" placeholder="Enter your name" />
 
-  <table id="preview">
-    <colgroup>
-      <col style="width:85%;">
-      <col style="width:15%;">
-    </colgroup>
-    <thead>
-      <tr>
-        <th><font size="4">Description of Work to be Performed</font></th>
-        <th style="text-align:right"><font size="4">Total $</font></th>
-      </tr>
-    </thead>
-    <tbody id="rows">
-      <!-- Rows added by user -->
-    </tbody>
-  </table>
+    <label for="customer">Customer Name</label>
+    <input type="text" id="customer" placeholder="Customer or company name" />
 
-  <div class="actions">
-    <button id="copy">Copy rows (TR only)</button>
-    <button id="copyTable">Copy full table HTML</button>
-    <button id="download">Download HTML file</button>
-  </div>
+    <label for="truckModel">Truck Model</label>
+    <input type="text" id="truckModel" placeholder="e.g., Freightliner Cascadia" />
 
-  <div style="margin-top:14px">
-    <label class="small">Generated &lt;tr&gt; rows (paste these into your Striven child merge-field):</label>
-    <textarea id="output" readonly></textarea>
+    <label for="vin">VIN / Stock #</label>
+    <input type="text" id="vin" placeholder="Enter VIN or stock number" />
+
+    <label for="price">Quoted Price ($)</label>
+    <input type="number" id="price" placeholder="e.g., 129500" />
+
+    <label for="notes">Notes / Options</label>
+    <textarea id="notes" placeholder="Include specs, terms, etc."></textarea>
+
+    <button type="button" onclick="copyQuote()">📋 Copy Quote</button>
+
+    <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
   <script>
-    const descEl = document.getElementById('desc');
-    const priceEl = document.getElementById('price');
-    const addBtn = document.getElementById('add');
-    const clearBtn = document.getElementById('clear');
-    const rowsEl = document.getElementById('rows');
-    const outputEl = document.getElementById('output');
-    const copyBtn = document.getElementById('copy');
-    const copyTableBtn = document.getElementById('copyTable');
-    const downloadBtn = document.getElementById('download');
-    const hideCheckbox = document.getElementById('hideCol2');
+    function copyQuote() {
+      const salesperson = document.getElementById("salesperson").value.trim();
+      const customer    = document.getElementById("customer").value.trim();
+      const model       = document.getElementById("truckModel").value.trim();
+      const vin         = document.getElementById("vin").value.trim();
+      const price       = document.getElementById("price").value.trim();
+      const notes       = document.getElementById("notes").value.trim();
 
-    function formatPrice(v) {
-      if (v === '' || v === null) return '';
-      const n = Number(v);
-      return isNaN(n) ? '' : n.toFixed(2);
-    }
+      const date = new Date().toLocaleDateString();
 
-    function addRow(desc, price) {
-      const tr = document.createElement('tr');
-      const td1 = document.createElement('td');
-      td1.style.textAlign = 'left';
-      td1.style.height = '25px';
-      td1.innerHTML = escapeHtml(desc || '');
-      const td2 = document.createElement('td');
-      td2.style.textAlign = 'right';
-      td2.textContent = formatPrice(price);
-      tr.appendChild(td1);
-      tr.appendChild(td2);
-      rowsEl.appendChild(tr);
-      updateOutput();
-      descEl.value = '';
-      priceEl.value = '';
-      descEl.focus();
-    }
+      const quoteText = 
+`=== SR Truck Quote ===
+Date: ${date}
+Salesperson: ${salesperson}
 
-    function updateOutput() {
-      // produce only the <tr> rows as string (no table wrapper)
-      const rows = Array.from(rowsEl.children).map(tr => tr.outerHTML).join('\n');
-      outputEl.value = rows;
-    }
+Customer: ${customer}
+Model: ${model}
+VIN / Stock #: ${vin}
+Quoted Price: $${price}
 
-    function escapeHtml(str) {
-      return String(str).replace(/[&<>"]/g, function (s) {
-        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[s];
+Notes / Options:
+${notes}
+
+----------------------
+Thank you for choosing SR Truck!`;
+
+      navigator.clipboard.writeText(quoteText).then(() => {
+        const msg = document.getElementById("message");
+        msg.style.display = "block";
+        setTimeout(() => msg.style.display = "none", 3000);
       });
     }
-
-    addBtn.addEventListener('click', () => {
-      const d = descEl.value.trim();
-      const p = priceEl.value;
-      if (!d) { descEl.focus(); return; }
-      addRow(d, p);
-    });
-
-    clearBtn.addEventListener('click', () => {
-      rowsEl.innerHTML = '';
-      updateOutput();
-      descEl.focus();
-    });
-
-    copyBtn.addEventListener('click', async () => {
-      try {
-        await navigator.clipboard.writeText(outputEl.value);
-        copyBtn.textContent = 'Copied ✓';
-        setTimeout(()=>copyBtn.textContent='Copy rows (TR only)',1000);
-      } catch (e) {
-        alert('Clipboard write failed — select and copy the text below manually.');
-      }
-    });
-
-    copyTableBtn.addEventListener('click', async () => {
-      const hide = hideCheckbox.checked;
-      // Clone the table so we don't modify the on-screen preview
-      const tableClone = document.getElementById('preview').cloneNode(true);
-
-      if (hide) {
-        // Add a colgroup that hides the second column
-        const colgroup = document.createElement('colgroup');
-        const c1 = document.createElement('col');
-        c1.style.width = '85%';
-        const c2 = document.createElement('col');
-        c2.style.width = '15%';
-        c2.style.display = 'none';
-        colgroup.appendChild(c1);
-        colgroup.appendChild(c2);
-        tableClone.insertBefore(colgroup, tableClone.firstChild);
-
-        // Also hide header and second-column cells as a fallback
-        tableClone.querySelectorAll('thead th:nth-child(2), tbody td:nth-child(2)').forEach(el => {
-          el.style.display = 'none';
-        });
-      }
-
-      const table = tableClone.outerHTML;
-      try {
-        await navigator.clipboard.writeText(table);
-        copyTableBtn.textContent = 'Copied ✓';
-        setTimeout(()=>copyTableBtn.textContent='Copy full table HTML',1000);
-      } catch (e) {
-        alert('Clipboard write failed — select and copy the HTML manually.');
-      }
-    });
-
-    downloadBtn.addEventListener('click', () => {
-      const hide = hideCheckbox.checked;
-      const tableClone = document.getElementById('preview').cloneNode(true);
-      if (hide) {
-        const colgroup = document.createElement('colgroup');
-        const c1 = document.createElement('col'); c1.style.width = '85%';
-        const c2 = document.createElement('col'); c2.style.width = '15%'; c2.style.display = 'none';
-        colgroup.appendChild(c1); colgroup.appendChild(c2);
-        tableClone.insertBefore(colgroup, tableClone.firstChild);
-        tableClone.querySelectorAll('thead th:nth-child(2), tbody td:nth-child(2)').forEach(el => { el.style.display = 'none'; });
-      }
-
-      const fullDoc = `<!doctype html>
-<html>
-<head><meta charset="utf-8"><title>Preview Table</title></head>
-<body>${tableClone.outerHTML}</body>
-</html>`;
-      const blob = new Blob([fullDoc], {type:'text/html'});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'table-preview.html';
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    });
-
-    // seed with example rows (optional)
-    addRow('Item A - Replace brake pads', '125.00');
-    addRow('Item B - Oil change', '45.00');
   </script>
 </body>
 </html>
