@@ -343,15 +343,44 @@
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
 
-    // --- Clean paste to preserve layout ---
+   // --- Smart paste handling for Striven quotes ---
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (target && target.isContentEditable) {
     e.preventDefault();
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    document.execCommand('insertText', false, text);
+
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
+    if (!text) return;
+
+    const rows = text.split(/\r?\n/).filter(line => line.trim() !== '');
+
+    if (rows.length > 1) {
+      // Multi-line paste: insert new rows
+      const currentRow = target.closest('tr');
+      const tbody = document.getElementById('quoteBody');
+      rows.forEach((line, index) => {
+        const newRow = document.createElement('tr');
+        newRow.setAttribute('draggable', 'true');
+        newRow.innerHTML = `
+          <td contenteditable="true" spellcheck="false">${line.trim()}</td>
+          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false"></td>
+          <td class="actions">
+            <button class="action-btn add" onclick="insertRow(this)">+</button>
+            <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+          </td>
+        `;
+        addDragEvents(newRow);
+        tbody.insertBefore(newRow, currentRow.nextSibling);
+      });
+    } else {
+      // Single-line paste: insert text in place
+      document.execCommand('insertText', false, text);
+    }
+
+    updateTotal();
   }
 });
+
   </script>
 </body>
 </html>
