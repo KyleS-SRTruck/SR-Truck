@@ -227,7 +227,10 @@
     // --- Copy Striven-compatible inline HTML quote with alternating colors ---
 function copyQuoteHTML() {
   const rows = document.querySelectorAll('#quoteBody tr');
-  if (!rows.length) return alert('No rows to copy.');
+  if (!rows.length) {
+    alert('⚠️ No rows to copy.');
+    return;
+  }
 
   let total = 0;
   let html = `
@@ -251,7 +254,6 @@ function copyQuoteHTML() {
     const num = parseFloat(amt) || 0;
     total += num;
 
-    // Alternate colors (even = white, odd = blue)
     const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
     const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
 
@@ -275,15 +277,29 @@ function copyQuoteHTML() {
 `;
 
   // Copy to clipboard
-  const tempEl = document.createElement('textarea');
-  tempEl.value = html.trim();
-  document.body.appendChild(tempEl);
-  tempEl.select();
-  document.execCommand('copy');
-  document.body.removeChild(tempEl);
-
-  alert('✅ Quote copied in Striven-compatible HTML format!');
+  navigator.clipboard.writeText(html.trim())
+    .then(() => {
+      alert('✅ Quote copied in Striven-compatible HTML format!');
+    })
+    .catch(() => {
+      // fallback if clipboard API not supported
+      const tempEl = document.createElement('textarea');
+      tempEl.value = html.trim();
+      document.body.appendChild(tempEl);
+      tempEl.select();
+      document.execCommand('copy');
+      document.body.removeChild(tempEl);
+      alert('✅ Quote copied in Striven-compatible HTML format!');
+    });
 }
+
+// Attach button event
+document.addEventListener('DOMContentLoaded', () => {
+  const copyBtn = document.getElementById('copyQuoteBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', copyQuoteHTML);
+  }
+});
     // ---------- Drag & Drop (desktop & touch) ----------
     let draggingRow = null;
     let isTouchDragging = false;
