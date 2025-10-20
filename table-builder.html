@@ -6,100 +6,107 @@
   <title>SR Truck Quote Builder</title>
 
   <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f7f9fc;
-      margin: 0;
-      padding: 2rem;
-    }
-    .container {
-      max-width: 1000px;
-      margin: 0 auto;
-      background: white;
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    }
-    h1 {
-      text-align: center;
-      color: #1a202c;
-      margin-bottom: 1.5rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 2rem;
-      background: #f9fafb;
-    }
-    th, td {
-      border: 1px solid #e2e8f0;
-      padding: 0.75rem;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      background: #2563eb;
-      color: white;
-      text-align: center;
-    }
-    tr:nth-child(even) {
-      background: #f1f5f9;
-    }
-    td[contenteditable="true"]:focus {
-      outline: 2px solid #2563eb;
-      background: #eef2ff;
-    }
-    tfoot td {
-      font-weight: bold;
-      background: #e0e7ff;
-    }
-    .actions {
-      text-align: center;
-      white-space: nowrap;
-    }
-    .action-btn {
-      background-color: #e5e7eb;
-      border: none;
-      padding: 4px 8px;
-      margin: 0 2px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: all 0.15s ease;
-    }
-    .action-btn:hover {
-      background-color: #cbd5e1;
-    }
-    .action-btn.delete {
-      background-color: #f87171;
-      color: white;
-    }
-    .action-btn.delete:hover {
-      background-color: #dc2626;
-    }
-    button {
-      margin-top: 1.5rem;
-      width: 100%;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 0.8rem;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s ease-in-out;
-    }
-    button:hover {
-      background-color: #1d4ed8;
-    }
-    #message {
-      text-align: center;
-      color: #16a34a;
-      font-weight: 600;
-      margin-top: 1rem;
-      display: none;
-    }
-  </style>
+  body {
+    font-family: system-ui, sans-serif;
+    background: #f7f9fc;
+    margin: 0;
+    padding: 2rem;
+  }
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+  }
+  h1 {
+    text-align: center;
+    color: #1a202c;
+    margin-bottom: 1.5rem;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 2rem;
+    background: #f9fafb;
+  }
+  th, td {
+    border: 1px solid #e2e8f0;
+    padding: 0.75rem;
+    text-align: left;
+    vertical-align: middle;
+  }
+  th {
+    background: #2563eb;
+    color: white;
+    text-align: center;
+  }
+  tr:nth-child(even) {
+    background: #f1f5f9;
+  }
+  td[contenteditable="true"]:focus {
+    outline: 2px solid #2563eb;
+    background: #eef2ff;
+  }
+  tfoot td {
+    font-weight: bold;
+    background: #e0e7ff;
+  }
+
+  /* Fix for action buttons */
+  .actions {
+    text-align: center;
+    white-space: nowrap;
+    width: 100px;
+  }
+  .action-btn {
+    display: inline-block;
+    background-color: #e5e7eb;
+    border: none;
+    padding: 4px 6px;
+    margin: 0 3px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    line-height: 1;
+    transition: all 0.15s ease;
+  }
+  .action-btn:hover {
+    background-color: #cbd5e1;
+  }
+  .action-btn.delete {
+    background-color: #ef4444;
+    color: white;
+  }
+  .action-btn.delete:hover {
+    background-color: #dc2626;
+  }
+
+  button {
+    margin-top: 1.5rem;
+    width: 100%;
+    background-color: #2563eb;
+    color: white;
+    border: none;
+    padding: 0.8rem;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+  }
+  button:hover {
+    background-color: #1d4ed8;
+  }
+  #message {
+    text-align: center;
+    color: #16a34a;
+    font-weight: 600;
+    margin-top: 1rem;
+    display: none;
+  }
+</style>
+
 </head>
 
 <body>
