@@ -342,6 +342,16 @@
     // ensure totals update if user pastes or types amounts without blurring
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
+
+    // --- Clean paste to preserve layout ---
+document.addEventListener('paste', function (e) {
+  const target = e.target;
+  if (target && target.isContentEditable) {
+    e.preventDefault();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
+    document.execCommand('insertText', false, text);
+  }
+});
   </script>
 </body>
 </html>
