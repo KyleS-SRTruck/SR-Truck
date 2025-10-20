@@ -224,7 +224,7 @@
       });
     }
 
-    // --- Copy Striven-compatible inline HTML quote ---
+    // --- Copy Striven-compatible inline HTML quote with alternating colors ---
 function copyQuoteHTML() {
   const rows = document.querySelectorAll('#quoteBody tr');
   if (!rows.length) return alert('No rows to copy.');
@@ -251,6 +251,7 @@ function copyQuoteHTML() {
     const num = parseFloat(amt) || 0;
     total += num;
 
+    // Alternate colors (even = white, odd = blue)
     const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
     const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
 
@@ -271,9 +272,9 @@ function copyQuoteHTML() {
     </tr>
   </tbody>
 </table>
-  `;
+`;
 
-  // Copy to clipboard as HTML
+  // Copy to clipboard
   const tempEl = document.createElement('textarea');
   tempEl.value = html.trim();
   document.body.appendChild(tempEl);
@@ -283,7 +284,6 @@ function copyQuoteHTML() {
 
   alert('✅ Quote copied in Striven-compatible HTML format!');
 }
-
     // ---------- Drag & Drop (desktop & touch) ----------
     let draggingRow = null;
     let isTouchDragging = false;
