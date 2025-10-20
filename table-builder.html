@@ -50,10 +50,12 @@
       border: 1px solid #e2e8f0;
       padding: 0.75rem;
       text-align: left;
+      vertical-align: top;
     }
     th {
       background: #2563eb;
       color: white;
+      text-align: center;
     }
     tr:nth-child(even) {
       background: #f1f5f9;
@@ -80,6 +82,13 @@
       margin-top: 1rem;
       display: none;
     }
+    .add-row {
+      margin-top: 1rem;
+      background-color: #10b981;
+    }
+    .add-row:hover {
+      background-color: #059669;
+    }
   </style>
 </head>
 
@@ -87,87 +96,54 @@
   <div class="container">
     <h1>SR Truck Quote Builder</h1>
 
-    <label for="salesperson">Salesperson</label>
-    <input type="text" id="salesperson" placeholder="Enter your name" oninput="updateTable()" />
-
-    <label for="customer">Customer Name</label>
-    <input type="text" id="customer" placeholder="Customer or company name" oninput="updateTable()" />
-
-    <label for="truckModel">Truck Model</label>
-    <input type="text" id="truckModel" placeholder="e.g., Freightliner Cascadia" oninput="updateTable()" />
-
-    <label for="vin">VIN / Stock #</label>
-    <input type="text" id="vin" placeholder="Enter VIN or stock number" oninput="updateTable()" />
-
-    <label for="price">Quoted Price ($)</label>
-    <input type="number" id="price" placeholder="e.g., 129500" oninput="updateTable()" />
-
-    <label for="notes">Notes / Options</label>
-    <textarea id="notes" placeholder="Include specs, terms, etc." oninput="updateTable()"></textarea>
-
-    <!-- Quote Table -->
+    <!-- TABLE -->
     <table id="quoteTable">
       <thead>
         <tr>
-          <th>Salesperson</th>
-          <th>Customer</th>
-          <th>Truck Model</th>
-          <th>VIN / Stock #</th>
-          <th>Price ($)</th>
-          <th>Notes</th>
+          <th>Description of Work to be Performed</th>
+          <th>Total $</th>
         </tr>
       </thead>
-      <tbody>
+      <tbody id="quoteBody">
         <tr>
-          <td id="tSalesperson">–</td>
-          <td id="tCustomer">–</td>
-          <td id="tModel">–</td>
-          <td id="tVin">–</td>
-          <td id="tPrice">–</td>
-          <td id="tNotes">–</td>
+          <td contenteditable="true" placeholder="Enter description..."></td>
+          <td contenteditable="true" placeholder="Enter amount..."></td>
         </tr>
       </tbody>
     </table>
 
+    <button class="add-row" type="button" onclick="addRow()">➕ Add Row</button>
     <button type="button" onclick="copyQuote()">📋 Copy Quote</button>
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
   <script>
-    function updateTable() {
-      document.getElementById("tSalesperson").innerText = document.getElementById("salesperson").value || "–";
-      document.getElementById("tCustomer").innerText = document.getElementById("customer").value || "–";
-      document.getElementById("tModel").innerText = document.getElementById("truckModel").value || "–";
-      document.getElementById("tVin").innerText = document.getElementById("vin").value || "–";
-      document.getElementById("tPrice").innerText = document.getElementById("price").value || "–";
-      document.getElementById("tNotes").innerText = document.getElementById("notes").value || "–";
+    function addRow() {
+      const tableBody = document.getElementById('quoteBody');
+      const newRow = document.createElement('tr');
+      newRow.innerHTML = `
+        <td contenteditable="true" placeholder="Enter description..."></td>
+        <td contenteditable="true" placeholder="Enter amount..."></td>
+      `;
+      tableBody.appendChild(newRow);
     }
 
     function copyQuote() {
-      const salesperson = document.getElementById("salesperson").value.trim();
-      const customer    = document.getElementById("customer").value.trim();
-      const model       = document.getElementById("truckModel").value.trim();
-      const vin         = document.getElementById("vin").value.trim();
-      const price       = document.getElementById("price").value.trim();
-      const notes       = document.getElementById("notes").value.trim();
+      const rows = document.querySelectorAll("#quoteBody tr");
+      let quoteText = "=== SR Truck Quote ===\n\n";
+      quoteText += "Description of Work to be Performed | Total $\n";
+      quoteText += "------------------------------------|---------\n";
 
-      const date = new Date().toLocaleDateString();
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const desc = (cells[0].innerText || "").trim();
+        const total = (cells[1].innerText || "").trim();
+        if (desc || total) {
+          quoteText += `${desc} | $${total}\n`;
+        }
+      });
 
-      const quoteText =
-`=== SR Truck Quote ===
-Date: ${date}
-Salesperson: ${salesperson}
-
-Customer: ${customer}
-Model: ${model}
-VIN / Stock #: ${vin}
-Quoted Price: $${price}
-
-Notes / Options:
-${notes}
-
-----------------------
-Thank you for choosing SR Truck!`;
+      quoteText += "\n----------------------\nThank you for choosing SR Truck!";
 
       navigator.clipboard.writeText(quoteText).then(() => {
         const msg = document.getElementById("message");
@@ -178,4 +154,3 @@ Thank you for choosing SR Truck!`;
   </script>
 </body>
 </html>
-
