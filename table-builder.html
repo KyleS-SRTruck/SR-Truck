@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>SR Truck Quote Builder</title>
-
   <style>
     body {
       font-family: system-ui, sans-serif;
@@ -93,7 +92,7 @@
       background-color: #dbeafe !important;
     }
 
-    button {
+    button.primary {
       margin-top: 1.5rem;
       width: 100%;
       background-color: #2563eb;
@@ -105,7 +104,7 @@
       cursor: pointer;
       transition: background 0.2s ease-in-out;
     }
-    button:hover {
+    button.primary:hover {
       background-color: #1d4ed8;
     }
     #message {
@@ -115,14 +114,20 @@
       margin-top: 1rem;
       display: none;
     }
+
+    /* small screens: make buttons slightly smaller */
+    @media (max-width: 480px) {
+      .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
+      .actions { width: 86px; }
+      .container { padding: 1rem; }
+    }
   </style>
 </head>
-
 <body>
   <div class="container">
     <h1>SR Truck Quote Builder</h1>
 
-    <table id="quoteTable">
+    <table id="quoteTable" aria-label="Quote table">
       <thead>
         <tr>
           <th>Description of Work to be Performed</th>
@@ -132,11 +137,11 @@
       </thead>
       <tbody id="quoteBody">
         <tr draggable="true">
-          <td contenteditable="true" placeholder="Enter description..."></td>
-          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
-          <td class="actions">
-            <button class="action-btn add" onclick="insertRow(this)">+</button>
-            <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+          <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
+          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
+          <td class="actions" aria-label="row actions">
+            <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
+            <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
           </td>
         </tr>
       </tbody>
@@ -149,26 +154,32 @@
       </tfoot>
     </table>
 
-    <button type="button" onclick="copyQuote()">📋 Copy Quote</button>
+    <button class="primary" type="button" onclick="copyQuote()">📋 Copy Quote</button>
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
   <script>
-    // === Row Insertion & Deletion ===
-    function insertRow(btn) {
-      const row = btn.closest('tr');
+    // ---------- Utilities ----------
+    function createRowElement() {
       const newRow = document.createElement('tr');
       newRow.setAttribute('draggable', 'true');
       newRow.innerHTML = `
-        <td contenteditable="true" placeholder="Enter description..."></td>
-        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
-        <td class="actions">
-          <button class="action-btn add" onclick="insertRow(this)">+</button>
-          <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+        <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
+        <td class="actions" aria-label="row actions">
+          <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
+          <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
         </td>
       `;
-      row.parentNode.insertBefore(newRow, row.nextSibling);
       addDragEvents(newRow);
+      return newRow;
+    }
+
+    // ---------- Row insertion & deletion ----------
+    function insertRow(btn) {
+      const row = btn.closest('tr');
+      const newRow = createRowElement();
+      row.parentNode.insertBefore(newRow, row.nextSibling);
     }
 
     function deleteRow(btn) {
@@ -178,13 +189,15 @@
         row.remove();
         updateTotal();
       } else {
+        // clear last row
         row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerHTML = '');
         updateTotal();
       }
     }
 
-    // === Currency Formatting & Totals ===
+    // ---------- Currency formatting & totals ----------
     function formatCurrency(cell) {
+      // Normalize numeric input and format as USD
       const raw = cell.innerText.replace(/[^0-9.]/g, '');
       const num = parseFloat(raw);
       if (!isNaN(num)) {
@@ -211,7 +224,7 @@
       });
     }
 
-    // === Copy Quote Text ===
+    // ---------- Copy Quote ----------
     function copyQuote() {
       const rows = document.querySelectorAll("#quoteBody tr");
       let quoteText = "=== SR Truck Quote ===\n\n";
@@ -220,6 +233,7 @@
 
       rows.forEach(row => {
         const cells = row.querySelectorAll("td");
+        // preserve text content from description but strip tags
         const desc = (cells[0].innerHTML || "").replace(/<[^>]*>/g, '').trim();
         const total = (cells[1].innerText || "").trim();
         if (desc || total) {
@@ -238,32 +252,97 @@
       });
     }
 
-    // === Drag and Drop Reordering ===
-    let dragSrcRow = null;
+    // ---------- Drag & Drop (desktop & touch) ----------
+    let draggingRow = null;
+    let isTouchDragging = false;
 
     function addDragEvents(row) {
-      row.addEventListener('dragstart', (e) => {
-        dragSrcRow = row;
-        row.classList.add('dragging');
-        e.dataTransfer.effectAllowed = 'move';
-      });
+      // desktop drag events
+      row.addEventListener('dragstart', dragStartHandler);
+      row.addEventListener('dragend', dragEndHandler);
+      row.addEventListener('dragover', dragOverHandler);
 
-      row.addEventListener('dragend', () => {
-        row.classList.remove('dragging');
-        updateTotal();
-      });
-
-      row.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        const tbody = row.parentNode;
-        const draggingRow = document.querySelector('.dragging');
-        const rows = [...tbody.querySelectorAll('tr')];
-        const nextRow = rows.find(r => e.clientY <= r.offsetTop + r.offsetHeight / 2);
-        tbody.insertBefore(draggingRow, nextRow);
-      });
+      // touch events for mobile
+      row.addEventListener('touchstart', touchStartHandler, {passive: false});
+      row.addEventListener('touchmove', touchMoveHandler, {passive: false});
+      row.addEventListener('touchend', touchEndHandler);
+      row.addEventListener('touchcancel', touchEndHandler);
     }
 
+    function dragStartHandler(e) {
+      draggingRow = e.currentTarget;
+      draggingRow.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // some browsers require data to be set
+      try { e.dataTransfer.setData('text/plain', 'drag'); } catch (err) {}
+    }
+
+    function dragEndHandler() {
+      if (draggingRow) draggingRow.classList.remove('dragging');
+      draggingRow = null;
+      updateTotal();
+    }
+
+    function dragOverHandler(e) {
+      e.preventDefault();
+      const tbody = document.getElementById('quoteBody');
+      if (!draggingRow) return;
+      // get pointer Y (desktop)
+      const pointerY = e.clientY;
+      moveDraggingRow(tbody, pointerY);
+    }
+
+    // Touch handlers
+    function touchStartHandler(e) {
+      e.preventDefault(); // prevent page scroll while dragging
+      isTouchDragging = true;
+      draggingRow = e.currentTarget;
+      draggingRow.classList.add('dragging');
+    }
+
+    function touchMoveHandler(e) {
+      if (!isTouchDragging || !draggingRow) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const pointerY = touch.clientY;
+      const tbody = document.getElementById('quoteBody');
+      moveDraggingRow(tbody, pointerY);
+    }
+
+    function touchEndHandler(e) {
+      if (draggingRow) draggingRow.classList.remove('dragging');
+      draggingRow = null;
+      isTouchDragging = false;
+      updateTotal();
+    }
+
+    // shared logic to move the draggingRow based on pointerY
+    function moveDraggingRow(tbody, pointerY) {
+      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r !== draggingRow);
+      // find the row whose midpoint is just below pointerY
+      let inserted = false;
+      for (let r of rows) {
+        const rect = r.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        if (pointerY < midpoint) {
+          tbody.insertBefore(draggingRow, r);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        // pointer is below all midpoints -> append to end
+        tbody.appendChild(draggingRow);
+      }
+    }
+
+    // initialize existing rows
     document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+
+    // ensure totals update if user pastes or types amounts without blurring
+    // (keeps total responsive)
+    document.getElementById('quoteBody').addEventListener('input', updateTotal);
   </script>
 </body>
 </html>
+
