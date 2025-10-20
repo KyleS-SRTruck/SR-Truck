@@ -343,7 +343,7 @@
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
 
-   // --- Smart paste handling for Striven quotes ---
+   // --- Smart paste handling for Striven quotes (ordered & column-aware) ---
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (target && target.isContentEditable) {
@@ -352,30 +352,46 @@ document.addEventListener('paste', function (e) {
     const text = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
     if (!text) return;
 
-    const rows = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    const currentRow = target.closest('tr');
+    const tbody = document.getElementById('quoteBody');
+    let insertAfter = currentRow;
 
-    if (rows.length > 1) {
-      // Multi-line paste: insert new rows
-      const currentRow = target.closest('tr');
-      const tbody = document.getElementById('quoteBody');
-      rows.forEach((line, index) => {
-        const newRow = document.createElement('tr');
-        newRow.setAttribute('draggable', 'true');
-        newRow.innerHTML = `
-          <td contenteditable="true" spellcheck="false">${line.trim()}</td>
-          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false"></td>
-          <td class="actions">
-            <button class="action-btn add" onclick="insertRow(this)">+</button>
-            <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
-          </td>
-        `;
-        addDragEvents(newRow);
-        tbody.insertBefore(newRow, currentRow.nextSibling);
-      });
-    } else {
-      // Single-line paste: insert text in place
-      document.execCommand('insertText', false, text);
-    }
+    lines.forEach((line) => {
+      // Split by tab or dash, trying to detect description and amount
+      let [desc, amount] = line.split(/\t| - |\s-\s/);
+      if (!amount && /\d/.test(desc)) {
+        // Try to separate numbers if pasted like "Task A 500"
+        const parts = desc.split(/(\d[\d,\.]*)/);
+        desc = (parts[0] || '').trim();
+        amount = (parts[1] || '').trim();
+      }
+
+      desc = desc ? desc.trim() : '';
+      amount = amount ? amount.replace(/[^0-9.]/g, '').trim() : '';
+
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('draggable', 'true');
+
+      // Format amount if numeric
+      const amountDisplay = amount
+        ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+        : '';
+
+      newRow.innerHTML = `
+        <td contenteditable="true" spellcheck="false">${desc}</td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
+        <td class="actions">
+          <button class="action-btn add" onclick="insertRow(this)">+</button>
+          <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+        </td>
+      `;
+      addDragEvents(newRow);
+
+      // Insert sequentially in correct order
+      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
+      insertAfter = newRow;
+    });
 
     updateTotal();
   }
