@@ -100,7 +100,7 @@
       <tbody id="quoteBody">
         <tr>
           <td contenteditable="true" placeholder="Enter description..."></td>
-          <td contenteditable="true" oninput="formatCurrency(this)" placeholder="Enter amount..."></td>
+          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
         </tr>
       </tbody>
       <tfoot>
@@ -122,15 +122,14 @@
       const newRow = document.createElement('tr');
       newRow.innerHTML = `
         <td contenteditable="true" placeholder="Enter description..."></td>
-        <td contenteditable="true" oninput="formatCurrency(this)" placeholder="Enter amount..."></td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
       `;
       tableBody.appendChild(newRow);
     }
 
     function formatCurrency(cell) {
-      // Allow only numbers and one dot
-      const value = cell.innerText.replace(/[^0-9.]/g, '');
-      const num = parseFloat(value);
+      const raw = cell.innerText.replace(/[^0-9.]/g, '');
+      const num = parseFloat(raw);
       if (!isNaN(num)) {
         cell.innerText = num.toLocaleString('en-US', {
           style: 'currency',
@@ -140,16 +139,6 @@
         cell.innerText = '';
       }
       updateTotal();
-      placeCaretAtEnd(cell);
-    }
-
-    function placeCaretAtEnd(el) {
-      const range = document.createRange();
-      const sel = window.getSelection();
-      range.selectNodeContents(el);
-      range.collapse(false);
-      sel.removeAllRanges();
-      sel.addRange(range);
     }
 
     function updateTotal() {
@@ -196,3 +185,4 @@
   </script>
 </body>
 </html>
+
