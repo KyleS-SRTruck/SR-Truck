@@ -390,14 +390,14 @@ document.addEventListener('paste', function (e) {
     let insertAfter = currentRow;
 
     lines.forEach((line) => {
-      // Split by tab or dash, trying to detect description and amount
-      let [desc, amount] = line.split(/\t| - |\s-\s/);
-      if (!amount && /\d/.test(desc)) {
-        // Try to separate numbers if pasted like "Task A 500"
-        const parts = desc.split(/(\d[\d,\.]*)/);
-        desc = (parts[0] || '').trim();
-        amount = (parts[1] || '').trim();
-      }
+      // Try to extract numeric value at end of line
+let desc = line.trim();
+let amount = '';
+const match = desc.match(/(.*?)([\d,.]+)\s*$/);
+if (match) {
+  desc = match[1].trim();
+  amount = match[2].trim();
+}
 
       desc = desc ? desc.trim() : '';
       amount = amount ? amount.replace(/[^0-9.]/g, '').trim() : '';
