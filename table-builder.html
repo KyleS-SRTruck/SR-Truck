@@ -375,23 +375,61 @@ function copyQuoteHTML() {
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
 
-     // --- Smart paste handling for Striven quotes (ordered & column-aware) ---
+// --- Smart paste handling (multi-line, multi-sentence, and blank-line aware) ---
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (target && target.isContentEditable) {
     e.preventDefault();
 
-    const text = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain');
     if (!text) return;
 
-    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    // Split on blank lines only (keeps multi-sentence paragraphs together)
+    const lines = text
+      .split(/\n\s*\n+/)
+      .map(line => line.trim())
+      .filter(line => line !== '');
+
     const currentRow = target.closest('tr');
     const tbody = document.getElementById('quoteBody');
     let insertAfter = currentRow;
 
     lines.forEach((line) => {
-      let desc = line.trim();
+      let desc = line;
       let amount = '';
+
+      // Detect if line ends with a currency-like value
+      const match = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
+      // Ignore incidental numbers (door counts, measurements, etc.)
+      if (match && !/door|inch|x|ct|lb|#|\)|no hitch/i.test(match[1])) {
+        desc = match[1].trim();
+        amount = match[2].replace(/[^\d.]/g, '');
+      }
+
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('draggable', 'true');
+
+      const amountDisplay = amount
+        ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+        : '';
+
+      newRow.innerHTML = `
+        <td contenteditable="true" spellcheck="false">${desc}</td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
+        <td class="actions">
+          <button class="action-btn add" onclick="insertRow(this)">+</button>
+          <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+        </td>
+      `;
+      addDragEvents(newRow);
+
+      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
+      insertAfter = newRow;
+    });
+
+    updateTotal();
+  }
+});
 
       // Match potential currency values (e.g., 100, 250.00, $1,200)
       const match = desc.match(/(.*?)(?:\$?\s*([\d,.]+))\s*$/);
