@@ -1,203 +1,243 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>SR Truck Quote Builder</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>S&R Truck Quote Builder</title>
   <style>
     body {
-      font-family: Arial, sans-serif;
+      font-family: system-ui, sans-serif;
       background: #f7f9fc;
-      margin: 20px;
+      margin: 0;
+      padding: 2rem;
     }
-    h2 {
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 16px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
+    }
+    h1 {
       text-align: center;
-      margin-bottom: 20px;
+      color: #1a202c;
+      margin-bottom: 1.5rem;
     }
     table {
       width: 100%;
       border-collapse: collapse;
-      background: white;
+      margin-top: 2rem;
+      background: #f9fafb;
     }
     th, td {
-      border: 1px solid #ccc;
-      padding: 10px;
+      border: 1px solid #e2e8f0;
+      padding: 0.75rem;
+      text-align: left;
+      vertical-align: middle;
     }
     th {
-      background: #e6f2ff;
+      background: #2563eb;
+      color: white;
       text-align: center;
-    }
-    td[contenteditable="true"] {
-      cursor: text;
     }
     tr:nth-child(even) {
-      background-color: #e6f2ff;
+      background: #f1f5f9;
     }
-    tr.dragging {
-      opacity: 0.6;
+    td[contenteditable="true"]:focus {
+      outline: 2px solid #2563eb;
+      background: #eef2ff;
     }
+    tfoot td {
+      font-weight: bold;
+      background: #e0e7ff;
+    }
+
+    /* --- Action buttons --- */
     .actions {
       text-align: center;
+      white-space: nowrap;
       width: 100px;
     }
-    button {
-      padding: 4px 8px;
+    .action-btn {
+      display: inline-block;
+      border: none;
       border-radius: 6px;
-      border: 1px solid #999;
-      background: #f0f0f0;
       cursor: pointer;
-      margin: 2px;
-      font-size: 12px;
+      font-size: 0.9rem;
+      line-height: 1;
+      margin: 0 2px;
+      width: 32px;
+      height: 28px;
+      transition: all 0.15s ease;
     }
-    button:hover {
-      background: #d9e6f2;
+    .action-btn.add {
+      background-color: #e5e7eb;
+      color: #4b5563;
     }
-    #copyQuoteBtn {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      font-size: 14px;
+    .action-btn.add:hover {
+      background-color: #cbd5e1;
+    }
+    .action-btn.delete {
+      background-color: #ef4444;
+      color: white;
+    }
+    .action-btn.delete:hover {
+      background-color: #dc2626;
+    }
+
+    /* Highlight row while dragging */
+    .dragging {
+      opacity: 0.6;
+      background-color: #dbeafe !important;
+    }
+
+    button.primary {
+      margin-top: 1.5rem;
+      width: 100%;
+      background-color: #2563eb;
+      color: white;
+      border: none;
+      padding: 0.8rem;
+      font-size: 1.1rem;
       border-radius: 8px;
-      border: 1px solid #444;
-      background: #e6f2ff;
       cursor: pointer;
+      transition: background 0.2s ease-in-out;
+    }
+    button.primary:hover {
+      background-color: #1d4ed8;
+    }
+    #message {
+      text-align: center;
+      color: #16a34a;
+      font-weight: 600;
+      margin-top: 1rem;
+      display: none;
+    }
+
+    /* small screens: make buttons slightly smaller */
+    @media (max-width: 480px) {
+      .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
+      .actions { width: 86px; }
+      .container { padding: 1rem; }
     }
   </style>
 </head>
 <body>
-  <h2>SR Truck Quote Builder</h2>
+  <div class="container">
+    <h1>SR Truck Quote Builder</h1>
 
-  <table id="quoteTable">
-    <thead>
-      <tr>
-        <th>Description of Work to be Performed</th>
-        <th>Total $</th>
-        <th class="actions">Actions</th>
-      </tr>
-    </thead>
-    <tbody id="quoteBody">
-      <tr draggable="true">
-        <td contenteditable="true">Example task</td>
-        <td contenteditable="true">$0.00</td>
-        <td class="actions">
-          <button onclick="insertRow(this)">+</button>
-          <button onclick="deleteRow(this)">🗑</button>
-        </td>
-      </tr>
-    </tbody>
-    <tfoot>
-      <tr>
-        <td style="text-align:right; font-weight:bold;">Total</td>
-        <td id="grandTotal" style="text-align:right; font-weight:bold;">$0.00</td>
-        <td></td>
-      </tr>
-    </tfoot>
-  </table>
+    <table id="quoteTable" aria-label="Quote table">
+      <thead>
+        <tr>
+          <th>Description of Work to be Performed</th>
+          <th>Total $</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="quoteBody">
+        <tr draggable="true">
+          <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
+          <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
+          <td class="actions" aria-label="row actions">
+            <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
+            <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
+          </td>
+        </tr>
+      </tbody>
+      <tfoot>
+        <tr>
+          <td style="text-align:right;">Total Amount:</td>
+          <td id="grandTotal">$0.00</td>
+          <td></td>
+        </tr>
+      </tfoot>
+    </table>
 
-  <button id="copyQuoteBtn" type="button">Copy Quote for Striven</button>
+    <button class="primary" type="button" onclick="copyQuoteHTML()">📋 Copy Quote</button>
+    <div id="message">Quote copied — paste it into Striven!</div>
+  </div>
 
   <script>
-    // --- Format Total $ inputs as currency ---
-    document.querySelector('#quoteBody').addEventListener('input', e => {
-      if (e.target.cellIndex === 1) {
-        let val = e.target.innerText.replace(/[^0-9.]/g, '');
-        const num = parseFloat(val);
-        if (!isNaN(num)) {
-          e.target.innerText = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-        }
-        updateTotal();
-      }
-    });
+    // ---------- Utilities ----------
+    function createRowElement() {
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('draggable', 'true');
+      newRow.innerHTML = `
+        <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
+        <td class="actions" aria-label="row actions">
+          <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
+          <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
+        </td>
+      `;
+      addDragEvents(newRow);
+      return newRow;
+    }
 
-    // --- Add/Delete rows ---
+    // ---------- Row insertion & deletion ----------
     function insertRow(btn) {
       const row = btn.closest('tr');
-      const newRow = row.cloneNode(true);
-      newRow.querySelectorAll('td')[0].innerText = '';
-      newRow.querySelectorAll('td')[1].innerText = '$0.00';
+      const newRow = createRowElement();
       row.parentNode.insertBefore(newRow, row.nextSibling);
-      addDragEvents(newRow);
-      updateRowColors();
-      updateTotal();
     }
 
     function deleteRow(btn) {
       const row = btn.closest('tr');
-      const body = document.getElementById('quoteBody');
-      if (body.rows.length > 1) {
+      const tbody = document.getElementById('quoteBody');
+      if (tbody.rows.length > 1) {
         row.remove();
+        updateTotal();
       } else {
-        alert('At least one row is required.');
+        // clear last row
+        row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerHTML = '');
+        updateTotal();
       }
-      updateRowColors();
+    }
+
+    // ---------- Currency formatting & totals ----------
+    function formatCurrency(cell) {
+      // Normalize numeric input and format as USD
+      const raw = cell.innerText.replace(/[^0-9.]/g, '');
+      const num = parseFloat(raw);
+      if (!isNaN(num)) {
+        cell.innerText = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+      } else {
+        cell.innerText = '';
+      }
       updateTotal();
     }
 
-    // --- Alternating row colors ---
-    function updateRowColors() {
-      const rows = document.querySelectorAll('#quoteBody tr');
-      rows.forEach((row, index) => {
-        if (index % 2 === 1) row.setAttribute('bgcolor', '#e6f2ff');
-        else row.removeAttribute('bgcolor');
-      });
-    }
-
-    // --- Calculate total ---
     function updateTotal() {
+      const rows = document.querySelectorAll("#quoteBody tr");
       let total = 0;
-      document.querySelectorAll('#quoteBody tr').forEach(row => {
-        const val = row.cells[1].innerText.replace(/[^0-9.]/g, '');
-        const num = parseFloat(val);
-        if (!isNaN(num)) total += num;
+      rows.forEach(row => {
+        const amountCell = row.querySelectorAll("td")[1];
+        if (amountCell) {
+          const amount = parseFloat(amountCell.innerText.replace(/[^0-9.-]+/g, ""));
+          if (!isNaN(amount)) total += amount;
+        }
       });
-      document.getElementById('grandTotal').innerText = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-    }
-
-    // --- Drag-and-drop rows ---
-    function addDragEvents(row) {
-      row.addEventListener('dragstart', e => {
-        e.dataTransfer.setData('text/plain', '');
-        row.classList.add('dragging');
-        draggedRow = row;
-      });
-      row.addEventListener('dragend', () => {
-        row.classList.remove('dragging');
-        updateRowColors();
+      document.getElementById("grandTotal").innerText = total.toLocaleString('en-US', {
+        style: 'currency',
+        currency: 'USD'
       });
     }
 
-    let draggedRow = null;
-    document.getElementById('quoteBody').addEventListener('dragover', e => {
-      e.preventDefault();
-      const target = e.target.closest('tr');
-      const body = document.getElementById('quoteBody');
-      if (target && target !== draggedRow) {
-        const rows = Array.from(body.children);
-        const draggedIndex = rows.indexOf(draggedRow);
-        const targetIndex = rows.indexOf(target);
-        if (draggedIndex < targetIndex) body.insertBefore(draggedRow, target.nextSibling);
-        else body.insertBefore(draggedRow, target);
-      }
-    });
+    // --- Copy Striven-compatible inline HTML quote with alternating colors ---
+function copyQuoteHTML() {
+  const rows = document.querySelectorAll('#quoteBody tr');
+  if (!rows.length) return alert('No rows to copy.');
 
-    document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
-
-    // --- Copy Striven-compatible HTML ---
-    document.addEventListener('DOMContentLoaded', () => {
-      const copyBtn = document.getElementById('copyQuoteBtn');
-      copyBtn.addEventListener('click', () => {
-        const rows = document.querySelectorAll('#quoteBody tr');
-        if (!rows.length) return alert('⚠️ No rows to copy.');
-
-        let total = 0;
-        let html = `
-<table border="1" cellpadding="5" cellspacing="0" style="width:100%; border-collapse:collapse; font-size:12pt;">
+  let total = 0;
+  let html = `
+<table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 12pt;">
   <thead>
     <tr>
-      <th style="text-align:center; width:85%; height:50px;">
+      <th style="text-align: center; width: 85%; height: 50px;">
         <font size="4">Description of Work to be Performed</font>
       </th>
-      <th style="text-align:center; width:15%; height:50px;">
+      <th style="text-align: center; width: 15%; height: 50px;">
         <font size="4">Total $</font>
       </th>
     </tr>
@@ -205,43 +245,190 @@
   <tbody>
 `;
 
-        rows.forEach((row, index) => {
-          const desc = (row.cells[0]?.innerText || '').trim();
-          const amt = (row.cells[1]?.innerText || '').trim().replace(/[^0-9.]/g, '');
-          const num = parseFloat(amt) || 0;
-          total += num;
-          const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
-          const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
-          html += `
+  rows.forEach((row, index) => {
+    const desc = (row.cells[0]?.innerText || '').trim();
+    const amt = (row.cells[1]?.innerText || '').trim().replace(/[^0-9.]/g, '');
+    const num = parseFloat(amt) || 0;
+    total += num;
+
+    // Alternate colors (even = white, odd = blue)
+    const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
+    const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
+
+    html += `
     <tr${bgColor}>
-      <td style="text-align:left; height:25px;">${desc}</td>
-      <td style="text-align:right; height:25px; font-size:10pt; color:rgba(102,102,102,1)">${displayAmt}</td>
-    </tr>`;
-        });
+      <td style="text-align: left; height: 25px;">${desc}</td>
+      <td style="text-align: right; height: 25px; font-size: 10pt; color: rgba(102, 102, 102, 1)">${displayAmt}</td>
+    </tr>
+    `;
+  });
 
-        const totalDisplay = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  const totalDisplay = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
-        html += `
+  html += `
     <tr>
-      <td style="text-align:right; font-weight:bold; height:30px;">Total</td>
-      <td style="text-align:right; font-weight:bold; height:30px;">${totalDisplay}</td>
+      <td style="text-align: right; font-weight: bold; height: 30px;">Total</td>
+      <td style="text-align: right; font-weight: bold; height: 30px;">${totalDisplay}</td>
     </tr>
   </tbody>
-</table>`;
+</table>
+`;
 
-        navigator.clipboard.writeText(html.trim())
-          .then(() => alert('✅ Quote copied in Striven-compatible HTML format!'))
-          .catch(() => {
-            const tempEl = document.createElement('textarea');
-            tempEl.value = html.trim();
-            document.body.appendChild(tempEl);
-            tempEl.select();
-            document.execCommand('copy');
-            document.body.removeChild(tempEl);
-            alert('✅ Quote copied in Striven-compatible HTML format!');
-          });
-      });
+  // Copy to clipboard
+  const tempEl = document.createElement('textarea');
+  tempEl.value = html.trim();
+  document.body.appendChild(tempEl);
+  tempEl.select();
+  document.execCommand('copy');
+  document.body.removeChild(tempEl);
+
+  alert('✅ Quote copied in Striven-compatible HTML format!');
+}
+    // ---------- Drag & Drop (desktop & touch) ----------
+    let draggingRow = null;
+    let isTouchDragging = false;
+
+    function addDragEvents(row) {
+      // desktop drag events
+      row.addEventListener('dragstart', dragStartHandler);
+      row.addEventListener('dragend', dragEndHandler);
+      row.addEventListener('dragover', dragOverHandler);
+
+      // touch events for mobile
+      row.addEventListener('touchstart', touchStartHandler, {passive: false});
+      row.addEventListener('touchmove', touchMoveHandler, {passive: false});
+      row.addEventListener('touchend', touchEndHandler);
+      row.addEventListener('touchcancel', touchEndHandler);
+    }
+
+    function dragStartHandler(e) {
+      draggingRow = e.currentTarget;
+      draggingRow.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // some browsers require data to be set
+      try { e.dataTransfer.setData('text/plain', 'drag'); } catch (err) {}
+    }
+
+    function dragEndHandler() {
+      if (draggingRow) draggingRow.classList.remove('dragging');
+      draggingRow = null;
+      updateTotal();
+    }
+
+    function dragOverHandler(e) {
+      e.preventDefault();
+      const tbody = document.getElementById('quoteBody');
+      if (!draggingRow) return;
+      // get pointer Y (desktop)
+      const pointerY = e.clientY;
+      moveDraggingRow(tbody, pointerY);
+    }
+
+    // Touch handlers
+    function touchStartHandler(e) {
+      e.preventDefault(); // prevent page scroll while dragging
+      isTouchDragging = true;
+      draggingRow = e.currentTarget;
+      draggingRow.classList.add('dragging');
+    }
+
+    function touchMoveHandler(e) {
+      if (!isTouchDragging || !draggingRow) return;
+      e.preventDefault();
+      const touch = e.touches[0];
+      const pointerY = touch.clientY;
+      const tbody = document.getElementById('quoteBody');
+      moveDraggingRow(tbody, pointerY);
+    }
+
+    function touchEndHandler(e) {
+      if (draggingRow) draggingRow.classList.remove('dragging');
+      draggingRow = null;
+      isTouchDragging = false;
+      updateTotal();
+    }
+
+    // shared logic to move the draggingRow based on pointerY
+    function moveDraggingRow(tbody, pointerY) {
+      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r !== draggingRow);
+      // find the row whose midpoint is just below pointerY
+      let inserted = false;
+      for (let r of rows) {
+        const rect = r.getBoundingClientRect();
+        const midpoint = rect.top + rect.height / 2;
+        if (pointerY < midpoint) {
+          tbody.insertBefore(draggingRow, r);
+          inserted = true;
+          break;
+        }
+      }
+      if (!inserted) {
+        // pointer is below all midpoints -> append to end
+        tbody.appendChild(draggingRow);
+      }
+    }
+
+    // initialize existing rows
+    document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+
+    // ensure totals update if user pastes or types amounts without blurring
+    // (keeps total responsive)
+    document.getElementById('quoteBody').addEventListener('input', updateTotal);
+
+   // --- Smart paste handling for Striven quotes (ordered & column-aware) ---
+document.addEventListener('paste', function (e) {
+  const target = e.target;
+  if (target && target.isContentEditable) {
+    e.preventDefault();
+
+    const text = (e.clipboardData || window.clipboardData).getData('text/plain').trim();
+    if (!text) return;
+
+    const lines = text.split(/\r?\n/).filter(line => line.trim() !== '');
+    const currentRow = target.closest('tr');
+    const tbody = document.getElementById('quoteBody');
+    let insertAfter = currentRow;
+
+    lines.forEach((line) => {
+      // Split by tab or dash, trying to detect description and amount
+      let [desc, amount] = line.split(/\t| - |\s-\s/);
+      if (!amount && /\d/.test(desc)) {
+        // Try to separate numbers if pasted like "Task A 500"
+        const parts = desc.split(/(\d[\d,\.]*)/);
+        desc = (parts[0] || '').trim();
+        amount = (parts[1] || '').trim();
+      }
+
+      desc = desc ? desc.trim() : '';
+      amount = amount ? amount.replace(/[^0-9.]/g, '').trim() : '';
+
+      const newRow = document.createElement('tr');
+      newRow.setAttribute('draggable', 'true');
+
+      // Format amount if numeric
+      const amountDisplay = amount
+        ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+        : '';
+
+      newRow.innerHTML = `
+        <td contenteditable="true" spellcheck="false">${desc}</td>
+        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
+        <td class="actions">
+          <button class="action-btn add" onclick="insertRow(this)">+</button>
+          <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+        </td>
+      `;
+      addDragEvents(newRow);
+
+      // Insert sequentially in correct order
+      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
+      insertAfter = newRow;
     });
+
+    updateTotal();
+  }
+});
+
   </script>
 </body>
 </html>
