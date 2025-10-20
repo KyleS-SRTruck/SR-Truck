@@ -5,111 +5,120 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SR Truck Quote Builder</title>
 
-  <style>
-    body {
-      font-family: system-ui, sans-serif;
-      background: #f7f9fc;
-      margin: 0;
-      padding: 2rem;
-    }
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      background: white;
-      padding: 2rem;
-      border-radius: 16px;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-    }
-    h1 {
-      text-align: center;
-      color: #1a202c;
-      margin-bottom: 1.5rem;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 2rem;
-      background: #f9fafb;
-    }
-    th, td {
-      border: 1px solid #e2e8f0;
-      padding: 0.75rem;
-      text-align: left;
-      vertical-align: top;
-    }
-    th {
-      background: #2563eb;
-      color: white;
-      text-align: center;
-    }
-    tr:nth-child(even) {
-      background: #f1f5f9;
-    }
-    td[contenteditable="true"]:focus {
-      outline: 2px solid #2563eb;
-      background: #eef2ff;
-    }
-    tfoot td {
-      font-weight: bold;
-      background: #e0e7ff;
-    }
+  <script>
+  // === Row Insertion & Deletion ===
+  function insertRow(btn) {
+    const row = btn.closest('tr');
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('draggable', 'true');
+    newRow.innerHTML = `
+      <td contenteditable="true" placeholder="Enter description..."></td>
+      <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..."></td>
+      <td class="actions">
+        <button class="action-btn add" onclick="insertRow(this)">+</button>
+        <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+      </td>
+    `;
+    row.parentNode.insertBefore(newRow, row.nextSibling);
+    addDragEvents(newRow);
+  }
 
-    /* --- Action buttons --- */
-    .actions {
-      text-align: center;
-      white-space: nowrap;
-      width: 100px;
+  function deleteRow(btn) {
+    const row = btn.closest('tr');
+    const tbody = document.getElementById('quoteBody');
+    if (tbody.rows.length > 1) {
+      row.remove();
+      updateTotal();
+    } else {
+      row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerHTML = '');
+      updateTotal();
     }
-    .action-btn {
-      display: inline-block;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 0.9rem;
-      line-height: 1;
-      margin: 0 2px;
-      width: 32px;
-      height: 28px;
-      transition: all 0.15s ease;
-    }
-    .action-btn.add {
-      background-color: #e5e7eb;
-      color: #4b5563;
-    }
-    .action-btn.add:hover {
-      background-color: #cbd5e1;
-    }
-    .action-btn.delete {
-      background-color: #ef4444;
-      color: white;
-    }
-    .action-btn.delete:hover {
-      background-color: #dc2626;
-    }
+  }
 
-    button {
-      margin-top: 1.5rem;
-      width: 100%;
-      background-color: #2563eb;
-      color: white;
-      border: none;
-      padding: 0.8rem;
-      font-size: 1.1rem;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s ease-in-out;
+  // === Currency Formatting & Totals ===
+  function formatCurrency(cell) {
+    const raw = cell.innerText.replace(/[^0-9.]/g, '');
+    const num = parseFloat(raw);
+    if (!isNaN(num)) {
+      cell.innerText = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    } else {
+      cell.innerText = '';
     }
-    button:hover {
-      background-color: #1d4ed8;
-    }
-    #message {
-      text-align: center;
-      color: #16a34a;
-      font-weight: 600;
-      margin-top: 1rem;
-      display: none;
-    }
-  </style>
+    updateTotal();
+  }
+
+  function updateTotal() {
+    const rows = document.querySelectorAll("#quoteBody tr");
+    let total = 0;
+    rows.forEach(row => {
+      const amountCell = row.querySelectorAll("td")[1];
+      if (amountCell) {
+        const amount = parseFloat(amountCell.innerText.replace(/[^0-9.-]+/g, ""));
+        if (!isNaN(amount)) total += amount;
+      }
+    });
+    document.getElementById("grandTotal").innerText = total.toLocaleString('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    });
+  }
+
+  // === Copy Quote Text ===
+  function copyQuote() {
+    const rows = document.querySelectorAll("#quoteBody tr");
+    let quoteText = "=== SR Truck Quote ===\n\n";
+    quoteText += "Description of Work to be Performed | Total $\n";
+    quoteText += "------------------------------------|---------\n";
+
+    rows.forEach(row => {
+      const cells = row.querySelectorAll("td");
+      const desc = (cells[0].innerHTML || "").replace(/<[^>]*>/g, '').trim();
+      const total = (cells[1].innerText || "").trim();
+      if (desc || total) {
+        quoteText += `${desc} | ${total}\n`;
+      }
+    });
+
+    const grandTotal = document.getElementById("grandTotal").innerText;
+    quoteText += `\nTOTAL AMOUNT: ${grandTotal}\n`;
+    quoteText += "\n----------------------\nThank you for choosing SR Truck!";
+
+    navigator.clipboard.writeText(quoteText).then(() => {
+      const msg = document.getElementById("message");
+      msg.style.display = "block";
+      setTimeout(() => msg.style.display = "none", 3000);
+    });
+  }
+
+  // === Drag and Drop Reordering ===
+  let dragSrcRow = null;
+
+  function addDragEvents(row) {
+    row.addEventListener('dragstart', (e) => {
+      dragSrcRow = row;
+      row.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    row.addEventListener('dragend', () => {
+      row.classList.remove('dragging');
+      updateTotal();
+    });
+
+    row.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      const tbody = row.parentNode;
+      const draggingRow = document.querySelector('.dragging');
+      const rows = [...tbody.querySelectorAll('tr')];
+      const nextRow = rows.find(r => e.clientY <= r.offsetTop + r.offsetHeight / 2);
+      tbody.insertBefore(draggingRow, nextRow);
+    });
+  }
+
+  // === Initialize on Load ===
+  document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+</script>
+
 </head>
 
 <body>
