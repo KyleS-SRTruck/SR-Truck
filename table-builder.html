@@ -380,6 +380,30 @@ document.addEventListener('paste', function (e) {
   const target = e.target;
   if (!(target && target.isContentEditable)) return; // only handle contenteditable
 
+  // --- SPECIAL CASE: Pasting into the AMOUNT column should NEVER create new rows ---
+const cell = target.closest('td');
+const row = target.closest('tr');
+
+if (cell && row && cell.cellIndex === 1) {
+  e.preventDefault();
+  let text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+  text = text.trim();
+
+  // Extract only numbers and decimal
+  const raw = text.replace(/[^0-9.]/g, '');
+  const num = parseFloat(raw);
+
+  if (!isNaN(num)) {
+    cell.textContent = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+  } else {
+    cell.textContent = '';
+  }
+
+  updateTotal();
+  return; // <-- STOP so the multi-row logic never runs
+}
+
+
   e.preventDefault();
   let text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
   if (!text) return;
