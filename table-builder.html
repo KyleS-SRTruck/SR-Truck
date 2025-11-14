@@ -52,8 +52,6 @@
       font-weight: bold;
       background: #e0e7ff;
     }
-
-    /* --- Action buttons --- */
     .actions {
       text-align: center;
       white-space: nowrap;
@@ -85,15 +83,12 @@
     .action-btn.delete:hover {
       background-color: #dc2626;
     }
-
-    /* Highlight row while dragging */
     .dragging {
       opacity: 0.6;
       background-color: #dbeafe !important;
     }
-
     button.primary {
-      margin-top: 1.5rem;
+      margin-top: 1rem;
       width: 100%;
       background-color: #2563eb;
       color: white;
@@ -114,7 +109,6 @@
       margin-top: 1rem;
       display: none;
     }
-
     @media (max-width: 480px) {
       .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
       .actions { width: 86px; }
@@ -153,7 +147,12 @@
       </tfoot>
     </table>
 
+    <!-- Action buttons -->
     <button class="primary" type="button" onclick="copyQuoteHTML()">📋 Copy Quote</button>
+    <button class="primary" type="button" onclick="saveQuote()">💾 Save Quote</button>
+    <button class="primary" type="button" onclick="loadQuote()">📂 Load Quote</button>
+    <button class="primary" type="button" onclick="clearQuote()">🗑 Clear Saved Quote</button>
+
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
@@ -272,7 +271,6 @@ function touchEndHandler() {
 function moveDraggingRow(tbody, pointerY) {
   const rows = [...tbody.querySelectorAll('tr')].filter(r => r !== draggingRow);
   let inserted = false;
-
   for (let r of rows) {
     const rect = r.getBoundingClientRect();
     if (pointerY < rect.top + rect.height / 2) {
@@ -287,15 +285,13 @@ function moveDraggingRow(tbody, pointerY) {
 document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
 
 /* ---------------------------------------------------
-   PASTE HANDLER — FIXED & CLEANED
+   PASTE HANDLER
 --------------------------------------------------- */
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (!(target && target.isContentEditable)) return;
 
   const tbody = document.getElementById('quoteBody');
-
-  /* --- SPECIAL CASE — Pasting into Total $ Column --- */
   const amtCell = target.closest('td');
   const amtRow = target.closest('tr');
 
@@ -313,11 +309,9 @@ document.addEventListener('paste', function (e) {
     return;
   }
 
-  /* --- Normal paste below --- */
   e.preventDefault();
   let text = e.clipboardData.getData('text/plain');
   if (!text) return;
-
   text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
   text = text.replace(/\n*\*\s+/g, '\n• ');
 
@@ -325,7 +319,6 @@ document.addEventListener('paste', function (e) {
   const cell = target.closest('td');
   const row = target.closest('tr');
 
-  /* --- Paste into Description Column (no new rows) --- */
   if (cell && row && cell.cellIndex === 0) {
     const combined = blocks.join('\n\n');
     let descText = combined;
@@ -352,13 +345,11 @@ document.addEventListener('paste', function (e) {
     return;
   }
 
-  /* --- Multi-row paste behavior --- */
   let insertAfter = row || tbody.lastElementChild;
 
   blocks.forEach(block => {
     let desc = block;
     let amount = '';
-
     const m = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
     if (m && !/door|inch|x|ct|lb|#|\)|no hitch/i.test(m[1])) {
       desc = m[1].trim();
@@ -387,8 +378,8 @@ document.addEventListener('paste', function (e) {
   updateTotal();
 });
 
-  /* ---------------------------------------------------
-   COPY QUOTE (WORKING VERSION)
+/* ---------------------------------------------------
+   COPY QUOTE
 --------------------------------------------------- */
 function copyQuoteHTML() {
   const rows = document.querySelectorAll('#quoteBody tr');
@@ -412,10 +403,7 @@ function copyQuoteHTML() {
 
   rows.forEach((row, index) => {
     let desc = (row.cells[0]?.innerText || '').trim();
-
-    // NEW: Preserve bullet points & line breaks inside the same cell
     desc = desc.replace(/\n/g, '<br>');
-
     const amt = (row.cells[1]?.innerText || '').trim().replace(/[^0-9.]/g, '');
     const num = parseFloat(amt) || 0;
     total += num;
@@ -442,7 +430,6 @@ function copyQuoteHTML() {
 </table>
 `;
 
-  // Copy using a hidden textarea
   const tempEl = document.createElement('textarea');
   tempEl.value = html.trim();
   document.body.appendChild(tempEl);
@@ -460,30 +447,32 @@ function copyQuoteHTML() {
     setTimeout(() => { msg.style.display = "none"; }, 600);
   }, 1800);
 }
-  // Save current table HTML
+
+/* ---------------------------------------------------
+   SAVE / LOAD / CLEAR QUOTE
+--------------------------------------------------- */
 function saveQuote() {
-    const html = document.getElementById("quote-table").innerHTML;
+    const html = document.getElementById("quoteTable").innerHTML;
     localStorage.setItem("savedQuote", html);
     alert("Quote saved locally!");
 }
 
-// Load saved table HTML
 function loadQuote() {
     const html = localStorage.getItem("savedQuote");
     if (html) {
-        document.getElementById("quote-table").innerHTML = html;
+        document.getElementById("quoteTable").innerHTML = html;
+        document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+        updateTotal();
     } else {
         alert("No saved quote found.");
     }
 }
 
-// Clear saved quote
 function clearQuote() {
     localStorage.removeItem("savedQuote");
     alert("Saved quote cleared.");
 }
 
 </script>
-
 </body>
 </html>
