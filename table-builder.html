@@ -386,6 +386,49 @@ document.addEventListener('paste', function (e) {
 
   updateTotal();
 });
+
+  /* ---------------------------------------------------
+   COPY QUOTE (WORKING VERSION)
+--------------------------------------------------- */
+function copyQuoteHTML() {
+  const table = document.getElementById("quoteTable");
+
+  // Create a cloned version so we can strip buttons
+  const clone = table.cloneNode(true);
+
+  // Remove all action buttons
+  clone.querySelectorAll(".actions").forEach(td => td.remove());
+
+  // Clean up empty columns in <thead> & <tfoot>
+  const headLastTh = clone.querySelector("thead th:last-child");
+  if (headLastTh) headLastTh.remove();
+
+  const footLastTd = clone.querySelector("tfoot td:last-child");
+  if (footLastTd) footLastTd.remove();
+
+  // Extract HTML of the cleaned version
+  const htmlToCopy = clone.outerHTML;
+
+  // Attempt to copy
+  navigator.clipboard.writeText(htmlToCopy).then(() => {
+    const msg = document.getElementById("message");
+    msg.style.display = "block";
+    msg.style.opacity = "1";
+
+    // Fade out message
+    setTimeout(() => {
+      msg.style.transition = "opacity 0.6s ease";
+      msg.style.opacity = "0";
+      setTimeout(() => {
+        msg.style.display = "none";
+      }, 600);
+    }, 1800);
+  }).catch(err => {
+    alert("Copy failed. Your browser may block clipboard access.");
+    console.error(err);
+  });
+}
+
 </script>
 
 </body>
