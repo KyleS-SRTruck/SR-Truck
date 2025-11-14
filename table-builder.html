@@ -375,66 +375,113 @@ function copyQuoteHTML() {
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
 
-// --- Smart paste handling: KEEP ALL BULLETS IN ONE ROW ---
+// --- Paste handler: keep bullets in same description cell, but still support multi-row paste ---
 document.addEventListener('paste', function (e) {
   const target = e.target;
-  if (target && target.isContentEditable) {
-    e.preventDefault();
+  if (!(target && target.isContentEditable)) return; // only handle contenteditable
 
-    let text = (e.clipboardData || window.clipboardData).getData('text/plain');
-    if (!text) return;
+  e.preventDefault();
+  let text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
+  if (!text) return;
 
-    // Preserve bullets as newlines inside the SAME row
-    text = text
-      .replace(/\*\s+/g, '\n• ')    // convert "*" to "•" bullets
-      .trim();
+  // Normalize bullets to consistent bullet marker and trim edges
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  // turn "*" bullets into a nicer bullet marker with a newline before if needed
+  text = text.replace(/\n*\*\s+/g, '\n• ');
 
-    // Only split on TRUE blank lines — NOT bullets
-    const blocks = text
-      .split(/\n\s*\n+/)            // double newline = new row
-      .map(b => b.trim())
-      .filter(b => b !== '');
+  // Split into blocks by BLANK LINES (preserve multi-line paragraphs / bullets within a block)
+  const blocks = text
+    .split(/\n\s*\n+/)
+    .map(b => b.trim())
+    .filter(b => b !== '');
 
-    const currentRow = target.closest('tr');
-    const tbody = document.getElementById('quoteBody');
-    let insertAfter = currentRow;
+  // If user pasted into a description cell (first column), keep all blocks inside that single cell
+  const cell = target.closest('td');
+  const row = target.closest('tr');
+  const tbody = document.getElementById('quoteBody');
 
-    blocks.forEach(block => {
-      let desc = block;
-      let amount = '';
+  if (cell && row && cell.cellIndex === 0) {
+    // Combine blocks into one description keeping line breaks between bullets/lines
+    const combined = blocks.join('\n\n'); // double newline to visually separate blocks
+    // Detect trailing currency in the entire combined block (only use if truly at end)
+    const overallMatch = combined.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})\s*$/);
+    let descText = combined;
+    let amount = '';
 
-      // Detect end-of-row amount (optional)
-      const match = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
-      if (match) {
-        desc = match[1].trim();
-        amount = match[2].replace(/[^\d.]/g, '');
+    if (overallMatch) {
+      // Be conservative: ensure the "amount" is likely a price, not a stray number
+      const potentialNum = overallMatch[2].replace(/[, ]/g, '').replace(/^\$/, '');
+      if (/^\d+(\.\d{1,2})?$/.test(potentialNum)) {
+        descText = overallMatch[1].trim();
+        amount = potentialNum;
       }
+    }
 
-      const newRow = document.createElement('tr');
-      newRow.setAttribute('draggable', 'true');
+    // Put description (preserve line breaks). Use textContent so we avoid injecting HTML.
+    // Ensure the TD supports pre-line rendering; we set inline style if not present.
+    cell.style.whiteSpace = cell.style.whiteSpace || 'pre-line';
+    // Insert text into the description cell
+    // Use textContent so pasted bullets render as text with line breaks
+    cell.textContent = descText;
 
-      const amountDisplay = amount
-        ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-        : '';
+    // If we detected an amount, put it in the Total $ cell for the same row
+    if (amount) {
+      const amountCell = row.querySelectorAll('td')[1];
+      if (amountCell) {
+        amountCell.textContent = parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+      }
+    }
 
-      newRow.innerHTML = `
-        <td contenteditable="true" spellcheck="false" style="white-space: pre-line;">${desc}</td>
-        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
-        <td class="actions">
-          <button class="action-btn add" onclick="insertRow(this)">+</button>
-          <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
-        </td>
-      `;
-
-      addDragEvents(newRow);
-      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
-      insertAfter = newRow;
-    });
-
+    // Update totals and done
     updateTotal();
+    return;
   }
-});
 
+  // OTHERWISE: paste outside description-first-col — create new rows, one per block (existing behavior)
+  let insertAfter = target.closest('tr') || tbody.lastElementChild || null;
+  if (!insertAfter) insertAfter = tbody; // fallback
+
+  blocks.forEach((block) => {
+    let desc = block;
+    let amount = '';
+
+    // detect trailing currency-like value for this block
+    const m = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
+    if (m && !/door|inch|x|ct|lb|#|\)|no hitch/i.test(m[1])) {
+      desc = m[1].trim();
+      amount = m[2].replace(/[^\d.]/g, '');
+    }
+
+    const newRow = document.createElement('tr');
+    newRow.setAttribute('draggable', 'true');
+
+    const amountDisplay = amount
+      ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+      : '';
+
+    newRow.innerHTML = `
+      <td contenteditable="true" spellcheck="false" style="white-space: pre-line;">${desc}</td>
+      <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
+      <td class="actions">
+        <button class="action-btn add" onclick="insertRow(this)">+</button>
+        <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+      </td>
+    `;
+    addDragEvents(newRow);
+
+    if (insertAfter instanceof HTMLTableSectionElement) {
+      insertAfter.appendChild(newRow);
+    } else if (insertAfter && insertAfter.parentNode) {
+      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
+    } else {
+      tbody.appendChild(newRow);
+    }
+
+    insertAfter = newRow;
+  });
+
+  updateTotal();
+});
 
   </script>
 </body>
