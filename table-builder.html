@@ -52,6 +52,7 @@
       font-weight: bold;
       background: #e0e7ff;
     }
+
     .actions {
       text-align: center;
       white-space: nowrap;
@@ -83,12 +84,14 @@
     .action-btn.delete:hover {
       background-color: #dc2626;
     }
+
     .dragging {
       opacity: 0.6;
       background-color: #dbeafe !important;
     }
+
     button.primary {
-      margin-top: 1rem;
+      margin-top: 1.5rem;
       width: 100%;
       background-color: #2563eb;
       color: white;
@@ -109,6 +112,7 @@
       margin-top: 1rem;
       display: none;
     }
+
     @media (max-width: 480px) {
       .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
       .actions { width: 86px; }
@@ -132,9 +136,9 @@
         <tr draggable="true">
           <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
           <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
-          <td class="actions" aria-label="row actions">
-            <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
-            <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
+          <td class="actions">
+            <button class="action-btn add" onclick="insertRow(this)">+</button>
+            <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
           </td>
         </tr>
       </tbody>
@@ -147,19 +151,13 @@
       </tfoot>
     </table>
 
-    <!-- Action buttons -->
     <button class="primary" type="button" onclick="copyQuoteHTML()">📋 Copy Quote</button>
-    <button class="primary" type="button" onclick="saveQuote()">💾 Save Quote</button>
-    <button class="primary" type="button" onclick="loadQuote()">📂 Load Quote</button>
-    <button class="primary" type="button" onclick="clearQuote()">🗑 Clear Saved Quote</button>
-
+    <button class="primary" type="button" onclick="importQuoteHTML()">📥 Import Quote</button>
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
 <script>
-/* ---------------------------------------------------
-   Row Creation
---------------------------------------------------- */
+/* ------------------------- ROW CREATION ------------------------- */
 function createRowElement() {
   const newRow = document.createElement('tr');
   newRow.setAttribute('draggable', 'true');
@@ -191,9 +189,7 @@ function deleteRow(btn) {
   updateTotal();
 }
 
-/* ---------------------------------------------------
-   Currency formatting
---------------------------------------------------- */
+/* ------------------------- CURRENCY & TOTAL ------------------------- */
 function formatCurrency(cell) {
   const raw = cell.innerText.replace(/[^0-9.]/g, '');
   const num = parseFloat(raw);
@@ -214,9 +210,7 @@ function updateTotal() {
     total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 }
 
-/* ---------------------------------------------------
-   Drag & Drop Rows
---------------------------------------------------- */
+/* ------------------------- DRAG & DROP ------------------------- */
 let draggingRow = null;
 let isTouchDragging = false;
 
@@ -271,6 +265,7 @@ function touchEndHandler() {
 function moveDraggingRow(tbody, pointerY) {
   const rows = [...tbody.querySelectorAll('tr')].filter(r => r !== draggingRow);
   let inserted = false;
+
   for (let r of rows) {
     const rect = r.getBoundingClientRect();
     if (pointerY < rect.top + rect.height / 2) {
@@ -284,9 +279,7 @@ function moveDraggingRow(tbody, pointerY) {
 
 document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
 
-/* ---------------------------------------------------
-   PASTE HANDLER
---------------------------------------------------- */
+/* ------------------------- PASTE HANDLER ------------------------- */
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (!(target && target.isContentEditable)) return;
@@ -300,11 +293,9 @@ document.addEventListener('paste', function (e) {
     let text = e.clipboardData.getData('text/plain').trim();
     const raw = text.replace(/[^0-9.]/g, '');
     const num = parseFloat(raw);
-
     amtCell.textContent = !isNaN(num)
       ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
       : '';
-
     updateTotal();
     return;
   }
@@ -312,9 +303,8 @@ document.addEventListener('paste', function (e) {
   e.preventDefault();
   let text = e.clipboardData.getData('text/plain');
   if (!text) return;
-  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-  text = text.replace(/\n*\*\s+/g, '\n• ');
 
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
   const blocks = text.split(/\n\s*\n+/).map(b => b.trim()).filter(b => b);
   const cell = target.closest('td');
   const row = target.closest('tr');
@@ -323,7 +313,6 @@ document.addEventListener('paste', function (e) {
     const combined = blocks.join('\n\n');
     let descText = combined;
     let amount = '';
-
     const match = combined.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})\s*$/);
     if (match) {
       const potential = match[2].replace(/[, ]/g, '').replace(/^\$/, '');
@@ -332,15 +321,12 @@ document.addEventListener('paste', function (e) {
         amount = potential;
       }
     }
-
     cell.style.whiteSpace = 'pre-line';
     cell.textContent = descText;
-
     if (amount) {
       row.cells[1].textContent =
         parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
     }
-
     updateTotal();
     return;
   }
@@ -358,7 +344,6 @@ document.addEventListener('paste', function (e) {
 
     const newRow = document.createElement('tr');
     newRow.setAttribute('draggable', 'true');
-
     newRow.innerHTML = `
       <td contenteditable="true" spellcheck="false" style="white-space: pre-line;">${desc}</td>
       <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()">
@@ -369,18 +354,14 @@ document.addEventListener('paste', function (e) {
         <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
       </td>
     `;
-
     addDragEvents(newRow);
     insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
     insertAfter = newRow;
   });
-
   updateTotal();
 });
 
-/* ---------------------------------------------------
-   COPY QUOTE
---------------------------------------------------- */
+/* ------------------------- COPY QUOTE ------------------------- */
 function copyQuoteHTML() {
   const rows = document.querySelectorAll('#quoteBody tr');
   if (!rows.length) return alert('No rows to copy.');
@@ -448,57 +429,35 @@ function copyQuoteHTML() {
   }, 1800);
 }
 
-/* ----------------- MULTI-QUOTE SUPPORT ----------------- */
-function getSavedQuotes() {
-    return JSON.parse(localStorage.getItem("savedQuotes") || "[]");
+/* ------------------------- IMPORT QUOTE ------------------------- */
+function importQuoteHTML() {
+  const html = prompt("Paste your quote HTML from Striven here:");
+  if (!html) return;
+
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+  const rows = doc.querySelectorAll("tr");
+
+  if (!rows.length) return alert("No rows found in pasted HTML.");
+
+  const tbody = document.getElementById("quoteBody");
+  tbody.innerHTML = "";
+
+  rows.forEach((r) => {
+    const desc = r.cells[0]?.innerText || "";
+    const amount = r.cells[1]?.innerText.replace(/[^0-9.]/g, "") || "";
+
+    const newRow = createRowElement();
+    newRow.cells[0].innerText = desc;
+    newRow.cells[1].innerText = amount ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD'}) : "";
+
+    tbody.appendChild(newRow);
+  });
+
+  document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+  updateTotal();
+  alert("Quote imported successfully!");
 }
-
-function saveQuote() {
-    const name = prompt("Enter a name for this quote:", "Quote " + new Date().toLocaleString());
-    if (!name) return;
-    const html = document.getElementById("quoteTable").innerHTML;
-    let quotes = getSavedQuotes();
-    quotes.push({ id: Date.now(), name: name, html: html });
-    localStorage.setItem("savedQuotes", JSON.stringify(quotes));
-    alert(`Quote "${name}" saved!`);
-}
-
-function loadQuote() {
-    const quotes = getSavedQuotes();
-    if (!quotes.length) return alert("No saved quotes found.");
-
-    const names = quotes.map((q, i) => `${i + 1}: ${q.name}`).join("\n");
-    const choice = prompt("Enter the number of the quote to load:\n" + names);
-    const index = parseInt(choice) - 1;
-    if (isNaN(index) || !quotes[index]) return;
-
-    document.getElementById("quoteTable").innerHTML = quotes[index].html;
-    document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
-    updateTotal();
-}
-
-function clearQuote() {
-    const quotes = getSavedQuotes();
-    if (!quotes.length) return alert("No saved quotes to clear.");
-    const names = quotes.map((q, i) => `${i + 1}: ${q.name}`).join("\n");
-    const choice = prompt("Enter the number of the quote to delete (or 'all' to clear all):\n" + names);
-    if (!choice) return;
-
-    if (choice.toLowerCase() === 'all') {
-        localStorage.removeItem("savedQuotes");
-        alert("All saved quotes cleared.");
-    } else {
-        const index = parseInt(choice) - 1;
-        if (!isNaN(index) && quotes[index]) {
-            const name = quotes[index].name;
-            quotes.splice(index, 1);
-            localStorage.setItem("savedQuotes", JSON.stringify(quotes));
-            alert(`Quote "${name}" deleted.`);
-        }
-    }
-}
-
-
 </script>
 </body>
 </html>
