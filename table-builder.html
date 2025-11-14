@@ -115,7 +115,6 @@
       display: none;
     }
 
-    /* small screens: make buttons slightly smaller */
     @media (max-width: 480px) {
       .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
       .actions { width: 86px; }
@@ -158,318 +157,208 @@
     <div id="message">Quote copied — paste it into Striven!</div>
   </div>
 
-  <script>
-    // ---------- Utilities ----------
-    function createRowElement() {
-      const newRow = document.createElement('tr');
-      newRow.setAttribute('draggable', 'true');
-      newRow.innerHTML = `
-        <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
-        <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" placeholder="Enter amount..." spellcheck="false"></td>
-        <td class="actions" aria-label="row actions">
-          <button class="action-btn add" title="Insert row below" onclick="insertRow(this)">+</button>
-          <button class="action-btn delete" title="Delete row" onclick="deleteRow(this)">🗑</button>
-        </td>
-      `;
-      addDragEvents(newRow);
-      return newRow;
-    }
-
-    // ---------- Row insertion & deletion ----------
-    function insertRow(btn) {
-      const row = btn.closest('tr');
-      const newRow = createRowElement();
-      row.parentNode.insertBefore(newRow, row.nextSibling);
-    }
-
-    function deleteRow(btn) {
-      const row = btn.closest('tr');
-      const tbody = document.getElementById('quoteBody');
-      if (tbody.rows.length > 1) {
-        row.remove();
-        updateTotal();
-      } else {
-        // clear last row
-        row.querySelectorAll('td[contenteditable="true"]').forEach(td => td.innerHTML = '');
-        updateTotal();
-      }
-    }
-
-    // ---------- Currency formatting & totals ----------
-    function formatCurrency(cell) {
-      // Normalize numeric input and format as USD
-      const raw = cell.innerText.replace(/[^0-9.]/g, '');
-      const num = parseFloat(raw);
-      if (!isNaN(num)) {
-        cell.innerText = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-      } else {
-        cell.innerText = '';
-      }
-      updateTotal();
-    }
-
-    function updateTotal() {
-      const rows = document.querySelectorAll("#quoteBody tr");
-      let total = 0;
-      rows.forEach(row => {
-        const amountCell = row.querySelectorAll("td")[1];
-        if (amountCell) {
-          const amount = parseFloat(amountCell.innerText.replace(/[^0-9.-]+/g, ""));
-          if (!isNaN(amount)) total += amount;
-        }
-      });
-      document.getElementById("grandTotal").innerText = total.toLocaleString('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      });
-    }
-
-    // --- Copy Striven-compatible inline HTML quote with alternating colors ---
-function copyQuoteHTML() {
-  const rows = document.querySelectorAll('#quoteBody tr');
-  if (!rows.length) return alert('No rows to copy.');
-
-  let total = 0;
-  let html = `
-<table border="1" cellpadding="5" cellspacing="0" style="width: 100%; border-collapse: collapse; font-size: 12pt;">
-  <thead>
-    <tr>
-      <th style="text-align: center; width: 85%; height: 50px;">
-        <font size="4">Description of Work to be Performed</font>
-      </th>
-      <th style="text-align: center; width: 15%; height: 50px;">
-        <font size="4">Total $</font>
-      </th>
-    </tr>
-  </thead>
-  <tbody>
-`;
-
-  rows.forEach((row, index) => {
-    const desc = (row.cells[0]?.innerText || '').trim();
-    const amt = (row.cells[1]?.innerText || '').trim().replace(/[^0-9.]/g, '');
-    const num = parseFloat(amt) || 0;
-    total += num;
-
-    // Alternate colors (even = white, odd = blue)
-    const bgColor = index % 2 === 1 ? ' bgcolor="#e6f2ff"' : '';
-    const displayAmt = num ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) : '';
-
-    html += `
-    <tr${bgColor}>
-      <td style="text-align: left; height: 25px;">${desc}</td>
-      <td style="text-align: right; height: 25px; font-size: 10pt; color: rgba(102, 102, 102, 1)">${displayAmt}</td>
-    </tr>
-    `;
-  });
-
-  const totalDisplay = total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-
-  html += `
-    <tr>
-      <td style="text-align: right; font-weight: bold; height: 30px;">Total</td>
-      <td style="text-align: right; font-weight: bold; height: 30px;">${totalDisplay}</td>
-    </tr>
-  </tbody>
-</table>
-`;
-
-  // Copy to clipboard
-  const tempEl = document.createElement('textarea');
-  tempEl.value = html.trim();
-  document.body.appendChild(tempEl);
-  tempEl.select();
-  document.execCommand('copy');
-  document.body.removeChild(tempEl);
-
-  alert('✅ Quote copied in Striven-compatible HTML format!');
+<script>
+/* ---------------------------------------------------
+   Row Creation
+--------------------------------------------------- */
+function createRowElement() {
+  const newRow = document.createElement('tr');
+  newRow.setAttribute('draggable', 'true');
+  newRow.innerHTML = `
+    <td contenteditable="true" placeholder="Enter description..." spellcheck="false"></td>
+    <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false"></td>
+    <td class="actions">
+      <button class="action-btn add" onclick="insertRow(this)">+</button>
+      <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
+    </td>
+  `;
+  addDragEvents(newRow);
+  return newRow;
 }
-    // ---------- Drag & Drop (desktop & touch) ----------
-    let draggingRow = null;
-    let isTouchDragging = false;
 
-    function addDragEvents(row) {
-      // desktop drag events
-      row.addEventListener('dragstart', dragStartHandler);
-      row.addEventListener('dragend', dragEndHandler);
-      row.addEventListener('dragover', dragOverHandler);
+function insertRow(btn) {
+  const row = btn.closest('tr');
+  row.parentNode.insertBefore(createRowElement(), row.nextSibling);
+}
 
-      // touch events for mobile
-      row.addEventListener('touchstart', touchStartHandler, {passive: false});
-      row.addEventListener('touchmove', touchMoveHandler, {passive: false});
-      row.addEventListener('touchend', touchEndHandler);
-      row.addEventListener('touchcancel', touchEndHandler);
+function deleteRow(btn) {
+  const row = btn.closest('tr');
+  const tbody = document.getElementById('quoteBody');
+  if (tbody.rows.length > 1) {
+    row.remove();
+  } else {
+    row.querySelectorAll('td[contenteditable]').forEach(td => td.innerHTML = '');
+  }
+  updateTotal();
+}
+
+/* ---------------------------------------------------
+   Currency formatting
+--------------------------------------------------- */
+function formatCurrency(cell) {
+  const raw = cell.innerText.replace(/[^0-9.]/g, '');
+  const num = parseFloat(raw);
+  cell.innerText = !isNaN(num)
+    ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+    : '';
+  updateTotal();
+}
+
+function updateTotal() {
+  let total = 0;
+  document.querySelectorAll("#quoteBody tr").forEach(row => {
+    const amountCell = row.cells[1];
+    const amount = parseFloat(amountCell.innerText.replace(/[^0-9.-]+/g, ""));
+    if (!isNaN(amount)) total += amount;
+  });
+  document.getElementById("grandTotal").innerText =
+    total.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+}
+
+/* ---------------------------------------------------
+   Drag & Drop Rows
+--------------------------------------------------- */
+let draggingRow = null;
+let isTouchDragging = false;
+
+function addDragEvents(row) {
+  row.addEventListener('dragstart', dragStartHandler);
+  row.addEventListener('dragend', dragEndHandler);
+  row.addEventListener('dragover', dragOverHandler);
+
+  row.addEventListener('touchstart', touchStartHandler, { passive: false });
+  row.addEventListener('touchmove', touchMoveHandler, { passive: false });
+  row.addEventListener('touchend', touchEndHandler);
+  row.addEventListener('touchcancel', touchEndHandler);
+}
+
+function dragStartHandler(e) {
+  draggingRow = e.currentTarget;
+  draggingRow.classList.add('dragging');
+  try { e.dataTransfer.setData('text/plain', 'drag'); } catch {}
+}
+
+function dragEndHandler() {
+  draggingRow.classList.remove('dragging');
+  draggingRow = null;
+  updateTotal();
+}
+
+function dragOverHandler(e) {
+  e.preventDefault();
+  moveDraggingRow(document.getElementById('quoteBody'), e.clientY);
+}
+
+function touchStartHandler(e) {
+  e.preventDefault();
+  draggingRow = e.currentTarget;
+  draggingRow.classList.add('dragging');
+  isTouchDragging = true;
+}
+
+function touchMoveHandler(e) {
+  if (!isTouchDragging) return;
+  e.preventDefault();
+  moveDraggingRow(document.getElementById('quoteBody'), e.touches[0].clientY);
+}
+
+function touchEndHandler() {
+  draggingRow?.classList.remove('dragging');
+  draggingRow = null;
+  isTouchDragging = false;
+  updateTotal();
+}
+
+function moveDraggingRow(tbody, pointerY) {
+  const rows = [...tbody.querySelectorAll('tr')].filter(r => r !== draggingRow);
+  let inserted = false;
+
+  for (let r of rows) {
+    const rect = r.getBoundingClientRect();
+    if (pointerY < rect.top + rect.height / 2) {
+      tbody.insertBefore(draggingRow, r);
+      inserted = true;
+      break;
     }
+  }
+  if (!inserted) tbody.appendChild(draggingRow);
+}
 
-    function dragStartHandler(e) {
-      draggingRow = e.currentTarget;
-      draggingRow.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      // some browsers require data to be set
-      try { e.dataTransfer.setData('text/plain', 'drag'); } catch (err) {}
-    }
+document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
 
-    function dragEndHandler() {
-      if (draggingRow) draggingRow.classList.remove('dragging');
-      draggingRow = null;
-      updateTotal();
-    }
-
-    function dragOverHandler(e) {
-      e.preventDefault();
-      const tbody = document.getElementById('quoteBody');
-      if (!draggingRow) return;
-      // get pointer Y (desktop)
-      const pointerY = e.clientY;
-      moveDraggingRow(tbody, pointerY);
-    }
-
-    // Touch handlers
-    function touchStartHandler(e) {
-      e.preventDefault(); // prevent page scroll while dragging
-      isTouchDragging = true;
-      draggingRow = e.currentTarget;
-      draggingRow.classList.add('dragging');
-    }
-
-    function touchMoveHandler(e) {
-      if (!isTouchDragging || !draggingRow) return;
-      e.preventDefault();
-      const touch = e.touches[0];
-      const pointerY = touch.clientY;
-      const tbody = document.getElementById('quoteBody');
-      moveDraggingRow(tbody, pointerY);
-    }
-
-    function touchEndHandler(e) {
-      if (draggingRow) draggingRow.classList.remove('dragging');
-      draggingRow = null;
-      isTouchDragging = false;
-      updateTotal();
-    }
-
-    // shared logic to move the draggingRow based on pointerY
-    function moveDraggingRow(tbody, pointerY) {
-      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => r !== draggingRow);
-      // find the row whose midpoint is just below pointerY
-      let inserted = false;
-      for (let r of rows) {
-        const rect = r.getBoundingClientRect();
-        const midpoint = rect.top + rect.height / 2;
-        if (pointerY < midpoint) {
-          tbody.insertBefore(draggingRow, r);
-          inserted = true;
-          break;
-        }
-      }
-      if (!inserted) {
-        // pointer is below all midpoints -> append to end
-        tbody.appendChild(draggingRow);
-      }
-    }
-
-    // initialize existing rows
-    document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
-
-    // ensure totals update if user pastes or types amounts without blurring
-    // (keeps total responsive)
-    document.getElementById('quoteBody').addEventListener('input', updateTotal);
-
-// --- Paste handler: keep bullets in same description cell, but still support multi-row paste ---
+/* ---------------------------------------------------
+   PASTE HANDLER — FIXED & CLEANED
+--------------------------------------------------- */
 document.addEventListener('paste', function (e) {
   const target = e.target;
-  if (!(target && target.isContentEditable)) return; // only handle contenteditable
+  if (!(target && target.isContentEditable)) return;
 
-  // --- SPECIAL CASE: Pasting into the AMOUNT column should NEVER create new rows ---
-const cell = target.closest('td');
-const row = target.closest('tr');
-
-if (cell && row && cell.cellIndex === 1) {
-  e.preventDefault();
-  let text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
-  text = text.trim();
-
-  // Extract only numbers and decimal
-  const raw = text.replace(/[^0-9.]/g, '');
-  const num = parseFloat(raw);
-
-  if (!isNaN(num)) {
-    cell.textContent = num.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-  } else {
-    cell.textContent = '';
-  }
-
-  updateTotal();
-  return; // <-- STOP so the multi-row logic never runs
-}
-
-
-  e.preventDefault();
-  let text = (e.clipboardData || window.clipboardData).getData('text/plain') || '';
-  if (!text) return;
-
-  // Normalize bullets to consistent bullet marker and trim edges
-  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
-  // turn "*" bullets into a nicer bullet marker with a newline before if needed
-  text = text.replace(/\n*\*\s+/g, '\n• ');
-
-  // Split into blocks by BLANK LINES (preserve multi-line paragraphs / bullets within a block)
-  const blocks = text
-    .split(/\n\s*\n+/)
-    .map(b => b.trim())
-    .filter(b => b !== '');
-
-  // If user pasted into a description cell (first column), keep all blocks inside that single cell
-  const cell = target.closest('td');
-  const row = target.closest('tr');
   const tbody = document.getElementById('quoteBody');
 
-  if (cell && row && cell.cellIndex === 0) {
-    // Combine blocks into one description keeping line breaks between bullets/lines
-    const combined = blocks.join('\n\n'); // double newline to visually separate blocks
-    // Detect trailing currency in the entire combined block (only use if truly at end)
-    const overallMatch = combined.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})\s*$/);
-    let descText = combined;
-    let amount = '';
+  /* --- SPECIAL CASE — Pasting into Total $ Column --- */
+  const amtCell = target.closest('td');
+  const amtRow = target.closest('tr');
 
-    if (overallMatch) {
-      // Be conservative: ensure the "amount" is likely a price, not a stray number
-      const potentialNum = overallMatch[2].replace(/[, ]/g, '').replace(/^\$/, '');
-      if (/^\d+(\.\d{1,2})?$/.test(potentialNum)) {
-        descText = overallMatch[1].trim();
-        amount = potentialNum;
-      }
-    }
+  if (amtCell && amtRow && amtCell.cellIndex === 1) {
+    e.preventDefault();
+    let text = e.clipboardData.getData('text/plain').trim();
+    const raw = text.replace(/[^0-9.]/g, '');
+    const num = parseFloat(raw);
 
-    // Put description (preserve line breaks). Use textContent so we avoid injecting HTML.
-    // Ensure the TD supports pre-line rendering; we set inline style if not present.
-    cell.style.whiteSpace = cell.style.whiteSpace || 'pre-line';
-    // Insert text into the description cell
-    // Use textContent so pasted bullets render as text with line breaks
-    cell.textContent = descText;
+    amtCell.textContent = !isNaN(num)
+      ? num.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+      : '';
 
-    // If we detected an amount, put it in the Total $ cell for the same row
-    if (amount) {
-      const amountCell = row.querySelectorAll('td')[1];
-      if (amountCell) {
-        amountCell.textContent = parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
-      }
-    }
-
-    // Update totals and done
     updateTotal();
     return;
   }
 
-  // OTHERWISE: paste outside description-first-col — create new rows, one per block (existing behavior)
-  let insertAfter = target.closest('tr') || tbody.lastElementChild || null;
-  if (!insertAfter) insertAfter = tbody; // fallback
+  /* --- Normal paste below --- */
+  e.preventDefault();
+  let text = e.clipboardData.getData('text/plain');
+  if (!text) return;
 
-  blocks.forEach((block) => {
+  text = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim();
+  text = text.replace(/\n*\*\s+/g, '\n• ');
+
+  const blocks = text.split(/\n\s*\n+/).map(b => b.trim()).filter(b => b);
+  const cell = target.closest('td');
+  const row = target.closest('tr');
+
+  /* --- Paste into Description Column (no new rows) --- */
+  if (cell && row && cell.cellIndex === 0) {
+    const combined = blocks.join('\n\n');
+    let descText = combined;
+    let amount = '';
+
+    const match = combined.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})\s*$/);
+    if (match) {
+      const potential = match[2].replace(/[, ]/g, '').replace(/^\$/, '');
+      if (/^\d+(\.\d{1,2})?$/.test(potential)) {
+        descText = match[1].trim();
+        amount = potential;
+      }
+    }
+
+    cell.style.whiteSpace = 'pre-line';
+    cell.textContent = descText;
+
+    if (amount) {
+      row.cells[1].textContent =
+        parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+    }
+
+    updateTotal();
+    return;
+  }
+
+  /* --- Multi-row paste behavior --- */
+  let insertAfter = row || tbody.lastElementChild;
+
+  blocks.forEach(block => {
     let desc = block;
     let amount = '';
 
-    // detect trailing currency-like value for this block
     const m = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
     if (m && !/door|inch|x|ct|lb|#|\)|no hitch/i.test(m[1])) {
       desc = m[1].trim();
@@ -479,34 +368,25 @@ if (cell && row && cell.cellIndex === 1) {
     const newRow = document.createElement('tr');
     newRow.setAttribute('draggable', 'true');
 
-    const amountDisplay = amount
-      ? parseFloat(amount).toLocaleString('en-US', { style: 'currency', currency: 'USD' })
-      : '';
-
     newRow.innerHTML = `
       <td contenteditable="true" spellcheck="false" style="white-space: pre-line;">${desc}</td>
-      <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
+      <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()">
+        ${amount ? parseFloat(amount).toLocaleString('en-US', { style:'currency', currency:'USD'}) : ''}
+      </td>
       <td class="actions">
         <button class="action-btn add" onclick="insertRow(this)">+</button>
         <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
       </td>
     `;
+
     addDragEvents(newRow);
-
-    if (insertAfter instanceof HTMLTableSectionElement) {
-      insertAfter.appendChild(newRow);
-    } else if (insertAfter && insertAfter.parentNode) {
-      insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
-    } else {
-      tbody.appendChild(newRow);
-    }
-
+    insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
     insertAfter = newRow;
   });
 
   updateTotal();
 });
+</script>
 
-  </script>
 </body>
 </html>
