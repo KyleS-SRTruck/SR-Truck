@@ -460,6 +460,28 @@ function copyQuoteHTML() {
     setTimeout(() => { msg.style.display = "none"; }, 600);
   }, 1800);
 }
+  // Save current table HTML
+function saveQuote() {
+    const html = document.getElementById("quote-table").innerHTML;
+    localStorage.setItem("savedQuote", html);
+    alert("Quote saved locally!");
+}
+
+// Load saved table HTML
+function loadQuote() {
+    const html = localStorage.getItem("savedQuote");
+    if (html) {
+        document.getElementById("quote-table").innerHTML = html;
+    } else {
+        alert("No saved quote found.");
+    }
+}
+
+// Clear saved quote
+function clearQuote() {
+    localStorage.removeItem("savedQuote");
+    alert("Saved quote cleared.");
+}
 
 </script>
 
