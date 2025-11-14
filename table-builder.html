@@ -448,30 +448,56 @@ function copyQuoteHTML() {
   }, 1800);
 }
 
-/* ---------------------------------------------------
-   SAVE / LOAD / CLEAR QUOTE
---------------------------------------------------- */
+/* ----------------- MULTI-QUOTE SUPPORT ----------------- */
+function getSavedQuotes() {
+    return JSON.parse(localStorage.getItem("savedQuotes") || "[]");
+}
+
 function saveQuote() {
+    const name = prompt("Enter a name for this quote:", "Quote " + new Date().toLocaleString());
+    if (!name) return;
     const html = document.getElementById("quoteTable").innerHTML;
-    localStorage.setItem("savedQuote", html);
-    alert("Quote saved locally!");
+    let quotes = getSavedQuotes();
+    quotes.push({ id: Date.now(), name: name, html: html });
+    localStorage.setItem("savedQuotes", JSON.stringify(quotes));
+    alert(`Quote "${name}" saved!`);
 }
 
 function loadQuote() {
-    const html = localStorage.getItem("savedQuote");
-    if (html) {
-        document.getElementById("quoteTable").innerHTML = html;
-        document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
-        updateTotal();
-    } else {
-        alert("No saved quote found.");
-    }
+    const quotes = getSavedQuotes();
+    if (!quotes.length) return alert("No saved quotes found.");
+
+    const names = quotes.map((q, i) => `${i + 1}: ${q.name}`).join("\n");
+    const choice = prompt("Enter the number of the quote to load:\n" + names);
+    const index = parseInt(choice) - 1;
+    if (isNaN(index) || !quotes[index]) return;
+
+    document.getElementById("quoteTable").innerHTML = quotes[index].html;
+    document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
+    updateTotal();
 }
 
 function clearQuote() {
-    localStorage.removeItem("savedQuote");
-    alert("Saved quote cleared.");
+    const quotes = getSavedQuotes();
+    if (!quotes.length) return alert("No saved quotes to clear.");
+    const names = quotes.map((q, i) => `${i + 1}: ${q.name}`).join("\n");
+    const choice = prompt("Enter the number of the quote to delete (or 'all' to clear all):\n" + names);
+    if (!choice) return;
+
+    if (choice.toLowerCase() === 'all') {
+        localStorage.removeItem("savedQuotes");
+        alert("All saved quotes cleared.");
+    } else {
+        const index = parseInt(choice) - 1;
+        if (!isNaN(index) && quotes[index]) {
+            const name = quotes[index].name;
+            quotes.splice(index, 1);
+            localStorage.setItem("savedQuotes", JSON.stringify(quotes));
+            alert(`Quote "${name}" deleted.`);
+        }
+    }
 }
+
 
 </script>
 </body>
