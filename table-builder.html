@@ -375,7 +375,7 @@ function copyQuoteHTML() {
     // (keeps total responsive)
     document.getElementById('quoteBody').addEventListener('input', updateTotal);
 
-// --- Smart paste handling for QuickBooks + multi-line + blank-line aware ---
+// --- Smart paste handling: KEEP ALL BULLETS IN ONE ROW ---
 document.addEventListener('paste', function (e) {
   const target = e.target;
   if (target && target.isContentEditable) {
@@ -384,30 +384,28 @@ document.addEventListener('paste', function (e) {
     let text = (e.clipboardData || window.clipboardData).getData('text/plain');
     if (!text) return;
 
-    // Convert QuickBooks bullet-style text into real line breaks
+    // Preserve bullets as newlines inside the SAME row
     text = text
-      .replace(/\*\s+/g, '\n* ')        // break before bullet markers
-      .replace(/;\s+\*/g, ';\n* ')      // bullets after semicolons
-      .replace(/\)\s+\*/g, ')\n* ')     // bullets after parentheses
-      .replace(/:\s+\*/g, ':\n* ');     // bullets after colons
+      .replace(/\*\s+/g, '\n• ')    // convert "*" to "•" bullets
+      .trim();
 
-    // Split on blank lines OR each bullet line
-    const lines = text
-      .split(/\n\s*\n+|(?=\n\* )/)     // blank line OR new bullet
-      .map(line => line.replace(/^\*\s*/, '').trim())  // remove leading "*"
-      .filter(line => line !== '');
+    // Only split on TRUE blank lines — NOT bullets
+    const blocks = text
+      .split(/\n\s*\n+/)            // double newline = new row
+      .map(b => b.trim())
+      .filter(b => b !== '');
 
     const currentRow = target.closest('tr');
     const tbody = document.getElementById('quoteBody');
     let insertAfter = currentRow;
 
-    lines.forEach((line) => {
-      let desc = line;
+    blocks.forEach(block => {
+      let desc = block;
       let amount = '';
 
-      // Detect trailing currency (only when valid)
+      // Detect end-of-row amount (optional)
       const match = desc.match(/(.*?)(\$?\s*[\d,]+\.\d{1,2})$/);
-      if (match && !/door|inch|x|ct|lb|#|\)|no hitch/i.test(match[1])) {
+      if (match) {
         desc = match[1].trim();
         amount = match[2].replace(/[^\d.]/g, '');
       }
@@ -420,15 +418,15 @@ document.addEventListener('paste', function (e) {
         : '';
 
       newRow.innerHTML = `
-        <td contenteditable="true" spellcheck="false">${desc}</td>
+        <td contenteditable="true" spellcheck="false" style="white-space: pre-line;">${desc}</td>
         <td contenteditable="true" onblur="formatCurrency(this)" oninput="updateTotal()" spellcheck="false">${amountDisplay}</td>
         <td class="actions">
           <button class="action-btn add" onclick="insertRow(this)">+</button>
           <button class="action-btn delete" onclick="deleteRow(this)">🗑</button>
         </td>
       `;
-      addDragEvents(newRow);
 
+      addDragEvents(newRow);
       insertAfter.parentNode.insertBefore(newRow, insertAfter.nextSibling);
       insertAfter = newRow;
     });
