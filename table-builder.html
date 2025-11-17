@@ -161,11 +161,11 @@ button.primary:hover {
 
   <div id="saveControls">
     <input type="text" id="quoteName" placeholder="Quote name">
-    <button onclick="saveQuote()">💾 Save Quote</button>
+    <button type="button" onclick="saveQuote()">💾 Save Quote</button>
     <select id="savedQuotes" onchange="loadQuote(this.value)">
       <option value="">-- Load Saved Quote --</option>
     </select>
-    <button onclick="deleteQuote()">❌ Delete Selected</button>
+    <button type="button" onclick="deleteQuote()">❌ Delete Selected</button>
   </div>
 
   <button class="primary" type="button" onclick="importQuoteHTML()">⬇️ Import HTML Quote</button>
