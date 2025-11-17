@@ -113,15 +113,35 @@ button.primary:hover {
   margin-top: 1rem;
   display: flex;
   gap: 10px;
-  flex-wrap: wrap;
+  flex-direction: column;
 }
-#savedQuotes {
-  flex: 1;
+#savedQuotesPanel {
+  display:none;
+  margin-top: 1rem;
+  background:white;
+  padding:15px;
+  border:1px solid #ddd;
+  border-radius:8px;
 }
-@media (max-width: 480px) {
-  .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
-  .actions { width: 86px; }
-  .container { padding: 1rem; }
+.saved-item {
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:8px;
+  margin-bottom:6px;
+  background:#f7f7f7;
+  border-radius:6px;
+}
+.saved-item button {
+  background:#ef4444;
+  color:white;
+  border:none;
+  padding:4px 8px;
+  border-radius:5px;
+  cursor:pointer;
+}
+.saved-item button:hover {
+  background:#dc2626;
 }
 </style>
 </head>
@@ -159,13 +179,17 @@ button.primary:hover {
   <button class="primary" type="button" onclick="copyQuoteHTML()">📋 Copy Quote</button>
   <div id="message">Quote copied — paste it into Striven!</div>
 
+  <!-- UPDATED SAVE CONTROLS -->
   <div id="saveControls">
-    <input type="text" id="quoteName" placeholder="Quote name">
-    <button type="button" onclick="saveQuote()">💾 Save Quote</button>
-    <select id="savedQuotes" onchange="loadQuote(this.value)">
-      <option value="">-- Load Saved Quote --</option>
-    </select>
-    <button type="button" onclick="deleteQuote()">❌ Delete Selected</button>
+    <input type="text" id="quoteName" placeholder="Quote name" style="display:none;">
+    <button class="primary" type="button" onclick="showSaveNameBox()">💾 Save Quote</button>
+    <button class="primary" type="button" onclick="toggleSavedQuotesPanel()">📁 Saved Quotes</button>
+  </div>
+
+  <!-- SAVED QUOTES PANEL -->
+  <div id="savedQuotesPanel">
+    <h3>Saved Quotes</h3>
+    <div id="savedQuotesList"></div>
   </div>
 
   <button class="primary" type="button" onclick="importQuoteHTML()">⬇️ Import HTML Quote</button>
@@ -262,7 +286,6 @@ function moveDraggingRow(pointerY){
   if(!inserted) tbody.appendChild(draggingRow);
 }
 
-/* Initialize existing rows */
 document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
 
 /* ---------------------------------------------------
@@ -311,7 +334,7 @@ function importQuoteHTML(){
   const doc = parser.parseFromString(html,"text/html");
   const trs = doc.querySelectorAll('tbody tr');
   const tbody = document.getElementById('quoteBody');
-  tbody.innerHTML=''; // clear current
+  tbody.innerHTML=''; 
   trs.forEach(tr=>{
     const desc = tr.cells[0]?.innerText||'';
     const amt = tr.cells[1]?.innerText||'';
@@ -321,17 +344,27 @@ function importQuoteHTML(){
 }
 
 /* ---------------------------------------------------
-   Save/Load/Delete Quotes (multiple)
+   NEW SAVE + SAVED QUOTES UI
 --------------------------------------------------- */
+
+function showSaveNameBox() {
+  const box = document.getElementById('quoteName');
+  if (box.style.display === "none") {
+    box.style.display = "block";
+    box.focus();
+  } else {
+    saveQuote();
+  }
+}
+
 function saveQuote(){
   let name = document.getElementById('quoteName').value.trim();
-
   if(!name){
     alert("Please enter a quote name before saving.");
     return;
   }
 
-  // Create timestamp
+  // Timestamp
   const now = new Date();
   const timestamp =
     now.getFullYear() + "-" +
@@ -340,22 +373,66 @@ function saveQuote(){
     String(now.getHours()).padStart(2,'0') + ":" +
     String(now.getMinutes()).padStart(2,'0');
 
-  // Full saved key
   const fullName = `${name} — ${timestamp}`;
-
   const html = document.getElementById('quoteBody').innerHTML;
 
   let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
   all[fullName] = html;
 
   localStorage.setItem('savedQuotes', JSON.stringify(all));
-  updateSavedDropdown();
+
+  // Hide & reset name box
+  document.getElementById('quoteName').value = "";
+  document.getElementById('quoteName').style.display = "none";
+
+  loadSavedQuotesList();
 
   alert('Quote saved!');
 }
 
+function toggleSavedQuotesPanel() {
+  const p = document.getElementById('savedQuotesPanel');
+  if (p.style.display === "none") {
+    loadSavedQuotesList();
+    p.style.display = "block";
+  } else {
+    p.style.display = "none";
+  }
+}
+
+function loadSavedQuotesList() {
+  const list = document.getElementById('savedQuotesList');
+  list.innerHTML = "";
+
+  let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+
+  const sorted = Object.keys(all).sort((a, b) => {
+    const dateA = new Date(a.split(" — ").pop());
+    const dateB = new Date(b.split(" — ").pop());
+    return dateB - dateA; 
+  });
+
+  sorted.forEach(name => {
+    const row = document.createElement("div");
+    row.className = "saved-item";
+
+    row.innerHTML = `
+      <span style="cursor:pointer; font-weight:500;" onclick="loadQuote('${name}')">${name}</span>
+      <button onclick="deleteSavedQuote('${name}')">Delete</button>
+    `;
+
+    list.appendChild(row);
+  });
+}
+
+function deleteSavedQuote(name) {
+  let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+  delete all[name];
+  localStorage.setItem('savedQuotes', JSON.stringify(all));
+  loadSavedQuotesList();
+}
+
 function loadQuote(name){
-  if(!name) return;
   const all = JSON.parse(localStorage.getItem('savedQuotes')||'{}');
   if(all[name]){
     document.getElementById('quoteBody').innerHTML=all[name];
@@ -363,32 +440,6 @@ function loadQuote(name){
     updateTotal();
   }
 }
-
-function deleteQuote(){
-  const sel = document.getElementById('savedQuotes');
-  const name = sel.value;
-  if(!name) return alert('Select a quote to delete.');
-  const all = JSON.parse(localStorage.getItem('savedQuotes')||'{}');
-  delete all[name];
-  localStorage.setItem('savedQuotes',JSON.stringify(all));
-  updateSavedDropdown();
-  sel.value='';
-  alert('Quote deleted!');
-}
-
-function updateSavedDropdown(){
-  const sel=document.getElementById('savedQuotes');
-  const all=JSON.parse(localStorage.getItem('savedQuotes')||'{}');
-  sel.innerHTML='<option value="">-- Load Saved Quote --</option>';
-  Object.keys(all).forEach(k=>{
-    const opt=document.createElement('option');
-    opt.value=k; opt.innerText=k;
-    sel.appendChild(opt);
-  });
-}
-
-/* Initialize dropdown on load */
-updateSavedDropdown();
 </script>
 </body>
 </html>
