@@ -331,19 +331,26 @@ function saveQuote(){
     return;
   }
 
-  // Prevent numeric-only names
-  if(!isNaN(name)){
-    alert("Quote name cannot be only numbers. Please add letters.");
-    return;
-  }
+  // Create timestamp
+  const now = new Date();
+  const timestamp =
+    now.getFullYear() + "-" +
+    String(now.getMonth()+1).padStart(2,'0') + "-" +
+    String(now.getDate()).padStart(2,'0') + " " +
+    String(now.getHours()).padStart(2,'0') + ":" +
+    String(now.getMinutes()).padStart(2,'0');
+
+  // Full saved key
+  const fullName = `${name} — ${timestamp}`;
 
   const html = document.getElementById('quoteBody').innerHTML;
-  let all = JSON.parse(localStorage.getItem('savedQuotes')||'{}');
 
-  all[name] = html;
+  let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+  all[fullName] = html;
 
   localStorage.setItem('savedQuotes', JSON.stringify(all));
   updateSavedDropdown();
+
   alert('Quote saved!');
 }
 
