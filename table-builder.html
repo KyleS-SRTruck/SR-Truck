@@ -324,12 +324,25 @@ function importQuoteHTML(){
    Save/Load/Delete Quotes (multiple)
 --------------------------------------------------- */
 function saveQuote(){
-  const name = document.getElementById('quoteName').value.trim();
-  if(!name) return alert('Enter a name for the quote.');
+  let name = document.getElementById('quoteName').value.trim();
+
+  if(!name){
+    alert("Please enter a quote name before saving.");
+    return;
+  }
+
+  // Prevent numeric-only names
+  if(!isNaN(name)){
+    alert("Quote name cannot be only numbers. Please add letters.");
+    return;
+  }
+
   const html = document.getElementById('quoteBody').innerHTML;
   let all = JSON.parse(localStorage.getItem('savedQuotes')||'{}');
-  all[name]=html;
-  localStorage.setItem('savedQuotes',JSON.stringify(all));
+
+  all[name] = html;
+
+  localStorage.setItem('savedQuotes', JSON.stringify(all));
   updateSavedDropdown();
   alert('Quote saved!');
 }
