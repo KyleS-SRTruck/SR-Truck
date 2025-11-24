@@ -336,7 +336,7 @@ function copyQuoteHTML() {
   });
 
   html += `<tr><td style="text-align:right;font-weight:bold">Total</td>
-  <td style="text-align:right;font-weight:bold">${total.toLocaleString('en-US',{style:'currency','USD'})}</td></tr></tbody></table>`;
+  <td style="text-align:right;font-weight:bold">${total.toLocaleString('en-US',{style:'currency', currency:'USD'})}</td></tr></tbody></table>`;
 
   const temp = document.createElement('textarea');
   temp.value = html.trim();
