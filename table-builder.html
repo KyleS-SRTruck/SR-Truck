@@ -143,6 +143,21 @@ button.primary:hover {
 .saved-item button:hover {
   background:#dc2626;
 }
+.saved-item .meta {
+  font-size: 12px;
+  color: #666;
+  margin-left: 8px;
+}
+.row-actions {
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+@media (max-width: 480px) {
+  .action-btn { width: 28px; height: 26px; font-size: 0.8rem; }
+  .actions { width: 86px; }
+  .container { padding: 1rem; }
+}
 </style>
 </head>
 <body>
@@ -181,9 +196,14 @@ button.primary:hover {
 
   <!-- UPDATED SAVE CONTROLS -->
   <div id="saveControls">
-    <input type="text" id="quoteName" placeholder="Quote name" style="display:none;">
-    <button class="primary" type="button" onclick="showSaveNameBox()">💾 Save Quote</button>
-    <button class="primary" type="button" onclick="toggleSavedQuotesPanel()">📁 Saved Quotes</button>
+    <div style="display:flex; gap:8px; align-items:center;">
+      <input type="text" id="quoteName" placeholder="Quote name" style="flex:1; padding:8px; display:block;">
+      <button class="primary" type="button" onclick="saveQuote()">💾 Save Quote</button>
+    </div>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button class="primary" type="button" onclick="toggleSavedQuotesPanel()">📁 Saved Quotes</button>
+      <button class="primary" type="button" onclick="importQuoteHTML()">⬇️ Import HTML Quote</button>
+    </div>
   </div>
 
   <!-- SAVED QUOTES PANEL -->
@@ -191,11 +211,15 @@ button.primary:hover {
     <h3>Saved Quotes</h3>
     <div id="savedQuotesList"></div>
   </div>
-
-  <button class="primary" type="button" onclick="importQuoteHTML()">⬇️ Import HTML Quote</button>
 </div>
 
 <script>
+let currentQuoteKey = null;
+/* ---------------------------------------------------
+   State
+--------------------------------------------------- */
+let currentQuoteKey = null; // base name (no timestamp) for the currently loaded quote
+
 /* ---------------------------------------------------
    Row Management
 --------------------------------------------------- */
@@ -310,6 +334,7 @@ function copyQuoteHTML(){
   html+=`<tr><td style="text-align:right;font-weight:bold">Total</td>
   <td style="text-align:right;font-weight:bold">${total.toLocaleString('en-US',{style:'currency',currency:'USD'})}</td></tr></tbody></table>`;
 
+  // copy as text
   const temp = document.createElement('textarea');
   temp.value = html.trim();
   document.body.appendChild(temp);
@@ -317,6 +342,7 @@ function copyQuoteHTML(){
   document.execCommand('copy');
   document.body.removeChild(temp);
 
+  // feedback
   const msg=document.getElementById('message');
   msg.style.display='block';msg.style.opacity='1';
   setTimeout(()=>{msg.style.transition='opacity 0.6s ease';msg.style.opacity='0';
@@ -344,17 +370,22 @@ function importQuoteHTML(){
 }
 
 /* ---------------------------------------------------
-   NEW SAVE + SAVED QUOTES UI
+   Save/Load/Delete Quotes (overwrite + timestamps)
 --------------------------------------------------- */
 
-function showSaveNameBox() {
-  const box = document.getElementById('quoteName');
-  if (box.style.display === "none") {
-    box.style.display = "block";
-    box.focus();
-  } else {
-    saveQuote();
-  }
+function makeTimestamp() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2,'0');
+  return now.getFullYear() + "-" + pad(now.getMonth()+1) + "-" + pad(now.getDate()) + " " +
+         pad(now.getHours()) + ":" + pad(now.getMinutes());
+}
+
+// Storage format: savedQuotes is an object where keys are base names and values {html, ts}
+function getAllSaved() {
+  return JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+}
+function setAllSaved(obj) {
+  localStorage.setItem('savedQuotes', JSON.stringify(obj));
 }
 
 function saveQuote(){
@@ -364,35 +395,56 @@ function saveQuote(){
     return;
   }
 
-  // Timestamp
-  const now = new Date();
-  const timestamp =
-    now.getFullYear() + "-" +
-    String(now.getMonth()+1).padStart(2,'0') + "-" +
-    String(now.getDate()).padStart(2,'0') + " " +
-    String(now.getHours()).padStart(2,'0') + ":" +
-    String(now.getMinutes()).padStart(2,'0');
-
-  const fullName = `${name} — ${timestamp}`;
-  const html = document.getElementById('quoteBody').innerHTML;
-
   let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
-  all[fullName] = html;
 
-  localStorage.setItem('savedQuotes', JSON.stringify(all));
+  // If user is overwriting the currently loaded quote → confirm.
+  if (currentQuoteKey && name === currentQuoteKey.split(" — ")[0]) {
+    const confirmOverwrite = confirm(`Are you sure you want to overwrite "${currentQuoteKey}"?`);
+    if (!confirmOverwrite) return;
 
-  // Hide & reset name box
-  document.getElementById('quoteName').value = "";
-  document.getElementById('quoteName').style.display = "none";
+    // Overwrite using same key (preserves filename format)
+    const timestamp = new Date().toISOString().slice(0,16).replace("T"," ");
 
+    const newKey = `${name} — ${timestamp}`;
+    all[newKey] = document.getElementById('quoteBody').innerHTML;
+
+    // Delete the old key
+    delete all[currentQuoteKey];
+
+    // Update current key reference
+    currentQuoteKey = newKey;
+
+    localStorage.setItem('savedQuotes', JSON.stringify(all));
+    loadSavedQuotesList();
+    alert("Quote updated!");
+    return;
+  }
+
+  // Save under the name (create or overwrite)
+  performSave(name);
+}
+
+function performSave(keyName) {
+  const all = getAllSaved();
+  const html = document.getElementById('quoteBody').innerHTML;
+  const ts = makeTimestamp();
+  all[keyName] = { html: html, ts: ts };
+  setAllSaved(all);
+
+  // set current loaded key to this name
+  currentQuoteKey = keyName;
+  // reflect name in the input
+  document.getElementById('quoteName').value = keyName;
+
+  // refresh list
   loadSavedQuotesList();
 
-  alert('Quote saved!');
+  alert(`Quote "${keyName}" saved (${ts}).`);
 }
 
 function toggleSavedQuotesPanel() {
   const p = document.getElementById('savedQuotesPanel');
-  if (p.style.display === "none") {
+  if (p.style.display === "none" || p.style.display === "") {
     loadSavedQuotesList();
     p.style.display = "block";
   } else {
@@ -400,46 +452,93 @@ function toggleSavedQuotesPanel() {
   }
 }
 
-function loadSavedQuotesList() {
+function loadSavedQuotesList(){
   const list = document.getElementById('savedQuotesList');
   list.innerHTML = "";
+  const all = getAllSaved();
 
-  let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+  // sort by timestamp descending
+  const entries = Object.keys(all).map(k => ({ name: k, ts: all[k].ts })).sort((a,b)=> new Date(b.ts) - new Date(a.ts));
 
-  const sorted = Object.keys(all).sort((a, b) => {
-    const dateA = new Date(a.split(" — ").pop());
-    const dateB = new Date(b.split(" — ").pop());
-    return dateB - dateA; 
-  });
+  entries.forEach(({name, ts})=>{
+    const row = document.createElement('div');
+    row.className = 'saved-item';
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.flexDirection = 'column';
+    const title = document.createElement('span');
+    title.style.cursor = 'pointer';
+    title.style.fontWeight = '600';
+    title.textContent = name;
+    title.onclick = () => loadQuote(name);
+    const meta = document.createElement('span');
+    meta.className = 'meta';
+    meta.textContent = ts;
+    left.appendChild(title);
+    left.appendChild(meta);
 
-  sorted.forEach(name => {
-    const row = document.createElement("div");
-    row.className = "saved-item";
+    const actions = document.createElement('div');
+    actions.className = 'row-actions';
+    const loadBtn = document.createElement('button');
+    loadBtn.textContent = 'Load';
+    loadBtn.onclick = () => loadQuote(name);
+    const deleteBtn = document.createElement('button');
+    deleteBtn.textContent = 'Delete';
+    deleteBtn.onclick = () => {
+      if(confirm(`Delete saved quote "${name}"?`)) {
+        deleteSavedQuote(name);
+      }
+    };
 
-    row.innerHTML = `
-      <span style="cursor:pointer; font-weight:500;" onclick="loadQuote('${name}')">${name}</span>
-      <button onclick="deleteSavedQuote('${name}')">Delete</button>
-    `;
+    actions.appendChild(loadBtn);
+    actions.appendChild(deleteBtn);
 
+    row.appendChild(left);
+    row.appendChild(actions);
     list.appendChild(row);
   });
 }
 
-function deleteSavedQuote(name) {
-  let all = JSON.parse(localStorage.getItem('savedQuotes') || '{}');
+function deleteSavedQuote(name){
+  const all = getAllSaved();
   delete all[name];
-  localStorage.setItem('savedQuotes', JSON.stringify(all));
+  setAllSaved(all);
   loadSavedQuotesList();
+  // if we deleted the currently loaded quote, clear currentQuoteKey
+  if(currentQuoteKey === name) {
+    currentQuoteKey = null;
+    document.getElementById('quoteName').value = '';
+  }
 }
 
 function loadQuote(name){
   const all = JSON.parse(localStorage.getItem('savedQuotes')||'{}');
   if(all[name]){
-    document.getElementById('quoteBody').innerHTML=all[name];
+    document.getElementById('quoteBody').innerHTML = all[name];
     document.querySelectorAll('#quoteBody tr').forEach(addDragEvents);
     updateTotal();
+
+    // Track which quote is currently loaded
+    currentQuoteKey = name;
+
+    // Pre-fill save box with just the name (before timestamp)
+    const baseName = name.split(" — ")[0];
+    document.getElementById('quoteName').value = baseName;
+    document.getElementById('quoteName').style.display = "block";
   }
 }
+  
+  updateTotal();
+  currentQuoteKey = name;
+  document.getElementById('quoteName').value = name;
+  toggleSavedQuotesPanel(); // hide panel after loading for convenience
+}
+
+/* Initialize saved list state on first load */
+document.addEventListener('DOMContentLoaded', () => {
+  loadSavedQuotesList();
+});
+
 </script>
 </body>
 </html>
