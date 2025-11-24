@@ -433,6 +433,17 @@ function saveQuote() {
   alert(`Quote "${key}" saved.`);
 }
 
+function toggleSavedQuotesPanel() {
+  const panel = document.getElementById("savedQuotesPanel");
+
+  if (panel.style.display === "block") {
+    panel.style.display = "none";
+  } else {
+    loadSavedQuotesList(); // refresh list when opened
+    panel.style.display = "block";
+  }
+}
+
 function loadSavedQuotesList() {
   const list = document.getElementById('savedQuotesList');
   list.innerHTML = "";
